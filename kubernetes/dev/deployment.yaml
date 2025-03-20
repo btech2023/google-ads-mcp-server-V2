@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: google-ads-mcp-server
+  namespace: dev
+  labels:
+    app: google-ads-mcp-server
+    environment: development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: google-ads-mcp-server
+  template:
+    metadata:
+      labels:
+        app: google-ads-mcp-server
+        environment: development
+    spec:
+      containers:
+      - name: google-ads-mcp-server
+        image: ghcr.io/your-username/google-ads-mcp:IMAGE_TAG
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+        - name: APP_ENV
+          value: "dev"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: CACHE_ENABLED
+          value: "true"
+        - name: CACHE_TTL
+          value: "3600"
+        - name: PORT
+          value: "8000"
+        envFrom:
+        - secretRef:
+            name: google-ads-credentials-dev
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: google-ads-mcp-logs
+          mountPath: /var/log/google-ads-mcp
+      volumes:
+      - name: google-ads-mcp-logs
+        emptyDir: {} 

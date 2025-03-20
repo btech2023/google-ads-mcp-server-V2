@@ -1,0 +1,147 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Test job - run pytest on the codebase
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create test env file
+        run: |
+          echo "GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN_TEST }}" > .env.test
+          echo "GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID_TEST }}" >> .env.test
+          echo "GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET_TEST }}" >> .env.test
+          echo "GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN_TEST }}" >> .env.test
+          echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID_TEST }}" >> .env.test
+          echo "APP_ENV=test" >> .env.test
+          echo "CACHE_ENABLED=true" >> .env.test
+      
+      - name: Run tests
+        run: |
+          pytest -v
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN_TEST }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID_TEST }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET_TEST }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN_TEST }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID_TEST }}
+  
+  # Build job - build and push Docker image
+  build:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=short
+            type=ref,event=branch
+            latest
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ github.sha }}
+  
+  # Deploy to test environment
+  deploy-test:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Set up Kubernetes config
+        run: |
+          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
+          chmod 600 kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+      
+      - name: Update image tag in Kubernetes manifests
+        run: |
+          sed -i "s|IMAGE_TAG|sha-$(git rev-parse --short HEAD)|g" kubernetes/test/deployment.yaml
+      
+      - name: Create test namespace if not exists
+        run: |
+          kubectl --kubeconfig=kubeconfig.yaml create namespace test --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+      
+      - name: Create Google Ads API credentials secret
+        run: |
+          kubectl --kubeconfig=kubeconfig.yaml -n test create secret generic google-ads-credentials-test \
+            --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN_TEST }} \
+            --from-literal=GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID_TEST }} \
+            --from-literal=GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET_TEST }} \
+            --from-literal=GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN_TEST }} \
+            --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID_TEST }} \
+            --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+      
+      - name: Deploy to test environment
+        run: |
+          kubectl --kubeconfig=kubeconfig.yaml apply -f kubernetes/test/
+      
+      - name: Verify deployment
+        run: |
+          kubectl --kubeconfig=kubeconfig.yaml -n test rollout status deployment/google-ads-mcp-server --timeout=120s
+      
+      - name: Post-deployment healthcheck
+        run: |
+          # Wait for service to be available
+          sleep 30
+          
+          # Get service URL
+          SERVICE_IP=$(kubectl --kubeconfig=kubeconfig.yaml -n test get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          
+          # Check health endpoint
+          if [[ -n "$SERVICE_IP" ]]; then
+            curl -s http://$SERVICE_IP:8000/health | jq -e '.status == "OK"' || (echo "Health check failed"; exit 1)
+            echo "Health check passed"
+          else
+            echo "Service IP not available yet, skipping health check"
+          fi 

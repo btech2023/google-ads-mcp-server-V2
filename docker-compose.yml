@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server.py:/app/server.py
+      - ./google_ads_client.py:/app/google_ads_client.py
+      - ./health.py:/app/health.py
+      - ./scripts:/app/scripts
+      - ./logs:/var/log/google-ads-mcp
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=dev
+      - APP_VERSION=1.0.0-dev
+      - LOG_LEVEL=INFO
+      - CACHE_ENABLED=true
+      - CACHE_TTL=3600
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; conn = http.client.HTTPConnection('localhost:8000'); conn.request('GET', '/health'); resp = conn.getresponse(); exit(0 if resp.status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s 
