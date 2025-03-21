@@ -1,5 +1,7 @@
 # Google Ads MCP Server
 
+*Updated on March 21, 2024 - Triggering workflow run*
+
 A Model Context Protocol (MCP) server that provides access to Google Ads data through Claude Desktop.
 
 ## Features
