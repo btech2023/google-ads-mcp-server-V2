@@ -12,9 +12,9 @@ COPY mcp-python-sdk/ /tmp/mcp-python-sdk/
 
 # Install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e /tmp/mcp-python-sdk/ && \
+    pip install --no-cache-dir -e "/tmp/mcp-python-sdk/[cli]" && \
     # Update requirements.txt to temporarily remove mcp-python-sdk for proper caching
-    grep -v "mcp-python-sdk" requirements.txt > requirements_without_mcp.txt && \
+    grep -v "mcp\[cli\]" requirements.txt > requirements_without_mcp.txt && \
     pip install --no-cache-dir -r requirements_without_mcp.txt
 
 # Runtime stage
