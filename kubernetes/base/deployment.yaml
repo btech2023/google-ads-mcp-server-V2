@@ -2,12 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: google-ads-mcp-server
-  namespace: dev
   labels:
     app: google-ads-mcp-server
-    environment: development
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: google-ads-mcp-server
@@ -15,34 +13,29 @@ spec:
     metadata:
       labels:
         app: google-ads-mcp-server
-        environment: development
     spec:
       containers:
       - name: google-ads-mcp-server
-        image: ghcr.io/your-username/google-ads-mcp:IMAGE_TAG
+        image: gcr.io/PROJECT_ID/google-ads-mcp-server:TAG
         ports:
         - containerPort: 8000
         resources:
           requests:
-            cpu: 100m
-            memory: 256Mi
+            cpu: 200m
+            memory: 384Mi
           limits:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 700m
+            memory: 768Mi
         env:
-        - name: APP_ENV
-          value: "dev"
-        - name: LOG_LEVEL
-          value: "INFO"
+        - name: PORT
+          value: "8000"
         - name: CACHE_ENABLED
           value: "true"
         - name: CACHE_TTL
           value: "3600"
-        - name: PORT
-          value: "8000"
         envFrom:
         - secretRef:
-            name: google-ads-credentials-dev
+            name: google-ads-credentials
         livenessProbe:
           httpGet:
             path: /health

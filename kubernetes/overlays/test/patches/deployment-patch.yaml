@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: google-ads-mcp-server
+spec:
+  template:
+    spec:
+      containers:
+      - name: google-ads-mcp-server
+        env:
+        - name: APP_ENV
+          value: "test"
+        - name: LOG_LEVEL
+          value: "INFO" 

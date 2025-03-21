@@ -1,0 +1,100 @@
+name: Build and Deploy to GKE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: google-ads-mcp-cluster
+  GKE_ZONE: us-central1
+  IMAGE: google-ads-mcp-server
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        
+    - name: Auth Docker
+      run: gcloud auth configure-docker
+      
+    - name: Get GKE Credentials
+      uses: google-github-actions/get-gke-credentials@v1
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        
+    - name: Build Docker Image
+      run: |
+        docker build -t gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA .
+        
+    - name: Push Docker Image
+      run: |
+        docker push gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+        
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+        
+    - name: Set up Kustomize
+      run: |
+        curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64
+        chmod +x kustomize
+        
+    - name: Update Kubernetes resources
+      run: |
+        # Replace the placeholder image with the actual image in the deployment
+        sed -i "s|gcr.io/PROJECT_ID/google-ads-mcp-server:TAG|gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA|g" kubernetes/base/deployment.yaml
+        
+    - name: Deploy to GKE
+      run: |
+        # Create namespace if it doesn't exist
+        kubectl create namespace test --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Create secret with actual credentials
+        kubectl create secret generic google-ads-credentials \
+          --namespace=test \
+          --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }} \
+          --from-literal=GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }} \
+          --from-literal=GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }} \
+          --from-literal=GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }} \
+          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy using kustomize
+        ./kustomize build kubernetes/overlays/test | kubectl apply -f -
+        
+        # Wait for deployment to finish
+        kubectl rollout status deployment/google-ads-mcp-server -n test --timeout=180s
+        
+    - name: Verify deployment
+      run: |
+        # Get the pod name
+        POD_NAME=$(kubectl get pods -n test -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
+        
+        # Check the pod status
+        kubectl get pod $POD_NAME -n test -o jsonpath="{.status.phase}"
+        
+        # Check the health endpoint
+        echo "Waiting for service to be ready..."
+        sleep 30
+        SERVICE_IP=$(kubectl get svc google-ads-mcp-server -n test -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+        if [[ -n "$SERVICE_IP" ]]; then
+          echo "Testing health endpoint at http://$SERVICE_IP/health"
+          curl -s http://$SERVICE_IP/health | grep -q "status.*OK" && echo "Health check passed" || echo "Health check failed"
+        else
+          echo "Service IP not available, skipping health check"
+        fi 
