@@ -1,6 +1,8 @@
 # Google Ads MCP Server Dependencies
 # Core dependencies
-mcp-python-sdk>=0.4.0
+# Local dependency - will be installed directly from the mcp-python-sdk directory
+# mcp-python-sdk>=0.4.0
+mcp>=0.4.0
 google-ads>=21.3.0
 python-dotenv>=1.0.0
 fastapi>=0.103.1

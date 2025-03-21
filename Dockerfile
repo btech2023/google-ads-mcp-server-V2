@@ -4,10 +4,18 @@ FROM python:3.9-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies first to leverage Docker caching
 COPY requirements.txt .
+
+# If mcp-python-sdk is a local dependency
+COPY mcp-python-sdk/ /tmp/mcp-python-sdk/
+
+# Install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -e /tmp/mcp-python-sdk/ && \
+    # Update requirements.txt to temporarily remove mcp-python-sdk for proper caching
+    grep -v "mcp-python-sdk" requirements.txt > requirements_without_mcp.txt && \
+    pip install --no-cache-dir -r requirements_without_mcp.txt
 
 # Runtime stage
 FROM python:3.9-slim
@@ -26,9 +34,10 @@ ENV PYTHONUNBUFFERED=1 \
 COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 
 # Copy application code
-COPY server.py google_ads_client.py health.py ./
+COPY server.py google_ads_client.py health.py config.py ./
 COPY .env.example ./.env.example
 COPY scripts ./scripts
+COPY test_*.py ./
 
 # Create directory for logs
 RUN mkdir -p /var/log/google-ads-mcp
