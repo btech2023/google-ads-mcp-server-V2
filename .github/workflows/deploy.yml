@@ -1,0 +1,69 @@
+name: Build and Deploy to GKE
+
+on:
+  push:
+    branches: [ main ]  # Trigger the workflow on push to main branch
+  workflow_dispatch:    # Allow manual triggering
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}  # Your GCP project ID
+  GKE_CLUSTER: google-ads-mcp-cluster        # The name of your GKE cluster
+  GKE_ZONE: us-central1                      # The zone your GKE cluster is in
+  IMAGE: google-ads-mcp-server               # The name of your Docker image
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Setup gcloud CLI
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}  # You'll need to add this secret
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    # Configure Docker to use the gcloud command-line tool
+    - name: Configure Docker
+      run: |
+        gcloud --quiet auth configure-docker
+
+    # Build the Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA .
+        docker tag gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA gcr.io/$PROJECT_ID/$IMAGE:latest
+
+    # Push the Docker image to Google Container Registry
+    - name: Publish Docker image
+      run: |
+        docker push gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+        docker push gcr.io/$PROJECT_ID/$IMAGE:latest
+
+    # Set up kube config using the stored secret
+    - name: Set up Kubernetes config
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    # Deploy to GKE
+    - name: Deploy to GKE
+      run: |
+        # Update the image tag in deployment.yaml
+        sed -i "s|\${CONTAINER_IMAGE}|gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA|g" kubernetes/deployment.yaml
+        
+        # Apply Kubernetes manifests
+        kubectl apply -f kubernetes/deployment.yaml
+        kubectl apply -f kubernetes/service.yaml
+        
+        # Verify deployment
+        kubectl rollout status deployment/google-ads-mcp-server
+
+    # Cleanup
+    - name: Cleanup
+      run: |
+        rm kubeconfig
