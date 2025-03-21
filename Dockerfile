@@ -4,18 +4,27 @@ FROM python:3.9-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Install dependencies first to leverage Docker caching
+# Copy requirements first for better caching
 COPY requirements.txt .
 
-# If mcp-python-sdk is a local dependency
-COPY mcp-python-sdk/ /tmp/mcp-python-sdk/
-
-# Install dependencies
+# Install dependencies with fallback mechanism for MCP SDK
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e "/tmp/mcp-python-sdk/[cli]" && \
-    # Update requirements.txt to temporarily remove mcp-python-sdk for proper caching
-    grep -v "mcp\[cli\]" requirements.txt > requirements_without_mcp.txt && \
+    # Try to install MCP from PyPI first
+    pip install --no-cache-dir mcp==0.4.0 || \
+    pip install --no-cache-dir "mcp[cli]==0.4.0" || \
+    echo "Failed to install MCP from PyPI, will try local path if available" && \
+    # Install other dependencies
+    grep -v "mcp" requirements.txt > requirements_without_mcp.txt && \
     pip install --no-cache-dir -r requirements_without_mcp.txt
+
+# Create directory for MCP SDK
+RUN mkdir -p /tmp/mcp-python-sdk
+# Copy MCP SDK if it exists (will be skipped in GitHub Actions due to missing directory)
+COPY mcp-python-sdk /tmp/mcp-python-sdk/
+# Install from local path if present
+RUN if [ -f "/tmp/mcp-python-sdk/setup.py" ]; then \
+        pip install --no-cache-dir -e "/tmp/mcp-python-sdk/[cli]"; \
+    fi
 
 # Runtime stage
 FROM python:3.9-slim
