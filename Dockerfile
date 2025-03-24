@@ -10,18 +10,20 @@ COPY requirements.txt .
 # Install dependencies with fallback mechanism for MCP SDK
 RUN pip install --no-cache-dir --upgrade pip && \
     # Try to install MCP from PyPI first
-    pip install --no-cache-dir mcp==0.4.0 || \
-    pip install --no-cache-dir "mcp[cli]==0.4.0" || \
+    pip install --no-cache-dir "mcp[cli]>=0.4.0,<0.5.0" || \
     echo "Failed to install MCP from PyPI, will try local path if available" && \
     # Install other dependencies
     grep -v "mcp" requirements.txt > requirements_without_mcp.txt && \
     pip install --no-cache-dir -r requirements_without_mcp.txt
 
-# Create directory for MCP SDK
+# Attempt to copy and install local MCP SDK if it exists
 RUN mkdir -p /tmp/mcp-python-sdk
-# Copy MCP SDK if it exists (will be skipped in GitHub Actions due to missing directory)
-COPY mcp-python-sdk /tmp/mcp-python-sdk/
-# Install from local path if present
+# Use shell scripting to handle the copy conditionally
+RUN if [ -d "mcp-python-sdk" ]; then \
+        cp -r mcp-python-sdk/* /tmp/mcp-python-sdk/ || true; \
+    else \
+        echo "No local MCP SDK found, using PyPI version if available"; \
+    fi
 RUN if [ -f "/tmp/mcp-python-sdk/setup.py" ]; then \
         pip install --no-cache-dir -e "/tmp/mcp-python-sdk/[cli]"; \
     fi
