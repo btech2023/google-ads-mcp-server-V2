@@ -1,7 +1,7 @@
 # Google Ads MCP Server Dependencies
 # Core dependencies
-# Install MCP directly from GitHub
-git+https://github.com/modelcontextprotocol/python-sdk.git@main#egg=mcp[cli]
+# Install MCP directly from GitHub using modern PEP 508 format
+mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git
 google-ads>=21.3.0
 python-dotenv>=1.0.0
 fastapi>=0.103.1

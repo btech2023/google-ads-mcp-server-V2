@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.9-slim AS builder
+FROM python:3.10-slim AS builder
 
 # Set working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Runtime stage
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
