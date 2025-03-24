@@ -31,7 +31,7 @@ ENV PYTHONUNBUFFERED=1 \
     APP_VERSION=1.0.0
 
 # Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 # Copy application code
 COPY server.py google_ads_client.py health.py config.py ./
