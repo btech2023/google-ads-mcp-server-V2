@@ -4,29 +4,18 @@ FROM python:3.9-slim AS builder
 # Set working directory
 WORKDIR /app
 
+# Install git (needed for GitHub installation)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install dependencies with fallback mechanism for MCP SDK
+# Install dependencies with all requirements including MCP from GitHub
 RUN pip install --no-cache-dir --upgrade pip && \
-    # Try to install MCP from PyPI first
-    pip install --no-cache-dir "mcp[cli]>=0.4.0,<0.5.0" || \
-    echo "Failed to install MCP from PyPI, will try local path if available" && \
-    # Install other dependencies
-    grep -v "mcp" requirements.txt > requirements_without_mcp.txt && \
-    pip install --no-cache-dir -r requirements_without_mcp.txt
-
-# Attempt to copy and install local MCP SDK if it exists
-RUN mkdir -p /tmp/mcp-python-sdk
-# Use shell scripting to handle the copy conditionally
-RUN if [ -d "mcp-python-sdk" ]; then \
-        cp -r mcp-python-sdk/* /tmp/mcp-python-sdk/ || true; \
-    else \
-        echo "No local MCP SDK found, using PyPI version if available"; \
-    fi
-RUN if [ -f "/tmp/mcp-python-sdk/setup.py" ]; then \
-        pip install --no-cache-dir -e "/tmp/mcp-python-sdk/[cli]"; \
-    fi
+    pip install --no-cache-dir -r requirements.txt
 
 # Runtime stage
 FROM python:3.9-slim
