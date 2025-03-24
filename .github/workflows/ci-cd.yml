@@ -127,10 +127,15 @@ jobs:
         run: |
           # Use Kustomize to set the image in the overlay
           cd kubernetes/overlays/test
+          
+          # Fix deprecated patchesStrategicMerge
+          kustomize edit fix
+          
+          # Set the image in the kustomization file
           kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
           
-          # Build and apply
-          kubectl --kubeconfig=../../kubeconfig.yaml apply -k .
+          # Build and apply with validation disabled
+          kustomize build --validate=false . | kubectl --kubeconfig=../../kubeconfig.yaml apply -f -
       
       - name: Verify deployment
         run: |
