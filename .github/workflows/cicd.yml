@@ -86,15 +86,42 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=kubeconfig.yaml
           
+      - name: Set up Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          
       - name: Deploy to Kubernetes
         run: |
-          # Replace image tag in deployment manifest
-          sed -i "s|IMAGE_TAG|sha-$(git rev-parse --short HEAD)|g" kubernetes/dev/deployment.yaml
+          # Use Kustomize to set the image in the overlay
+          cd kubernetes/overlays/dev
+          kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
           
-          # Apply Kubernetes manifests
-          kubectl apply -f kubernetes/dev/
+          # Build and apply
+          kubectl apply -k .
+        env:
+          KUBECONFIG: kubeconfig.yaml
           
-          # Wait for deployment to complete
+      - name: Verify deployment
+        run: |
           kubectl rollout status deployment/google-ads-mcp-server -n dev --timeout=120s
+        env:
+          KUBECONFIG: kubeconfig.yaml
+          
+      - name: Post-deployment healthcheck
+        run: |
+          # Wait for service to be available
+          sleep 30
+          
+          # Get service URL
+          SERVICE_IP=$(kubectl -n dev get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          
+          # Check health endpoint
+          if [[ -n "$SERVICE_IP" ]]; then
+            curl -s http://$SERVICE_IP:8000/health | jq -e '.status == "OK"' || (echo "Health check failed"; exit 1)
+            echo "Health check passed"
+          else
+            echo "Service IP not available yet, skipping health check"
+          fi
         env:
           KUBECONFIG: kubeconfig.yaml 
