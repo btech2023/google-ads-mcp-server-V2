@@ -54,19 +54,28 @@ jobs:
       run: |
         gcloud auth configure-docker $REGISTRY
         
-    - name: Create Artifact Registry Repository
+    - name: Check Artifact Registry Repository
+      id: check-repo
       run: |
         echo "Checking if repository exists..."
-        if ! gcloud artifacts repositories describe $IMAGE --location=$GKE_ZONE --project=$PROJECT_ID 2>/dev/null; then
-          echo "Creating repository..."
-          gcloud artifacts repositories create $IMAGE \
-            --repository-format=docker \
-            --location=$GKE_ZONE \
-            --project=$PROJECT_ID \
-            --description="Docker repository for Google Ads MCP Server"
+        if gcloud artifacts repositories describe $IMAGE --location=$GKE_ZONE --project=$PROJECT_ID 2>/dev/null; then
+          echo "Repository exists"
+          echo "exists=true" >> $GITHUB_OUTPUT
         else
-          echo "Repository already exists"
+          echo "Repository does not exist"
+          echo "exists=false" >> $GITHUB_OUTPUT
         fi
+        
+    - name: Create Artifact Registry Repository
+      if: steps.check-repo.outputs.exists == 'false'
+      run: |
+        echo "Creating repository..."
+        gcloud artifacts repositories create $IMAGE \
+          --repository-format=docker \
+          --location=$GKE_ZONE \
+          --project=$PROJECT_ID \
+          --description="Docker repository for Google Ads MCP Server"
+      continue-on-error: true  # Continue even if repository creation fails
         
     - name: Get GKE Credentials
       run: |
@@ -116,31 +125,40 @@ jobs:
     - name: Debug Deployment Failure
       if: failure()
       run: |
-        echo "Checking pod status..."
-        kubectl get pods -n $NAMESPACE
+        echo "=== Checking GKE Authentication ==="
+        echo "Current context:"
+        kubectl config current-context || true
+        echo "Available contexts:"
+        kubectl config get-contexts || true
         
-        echo "Checking deployment details..."
-        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE
+        echo "=== Checking Pod Status ==="
+        kubectl get pods -n $NAMESPACE || true
         
-        echo "Getting pod details and logs..."
-        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
+        echo "=== Checking Deployment Details ==="
+        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE || true
+        
+        echo "=== Getting Pod Details and Logs ==="
+        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}" || true)
         if [ -n "$POD_NAME" ]; then
           echo "Pod events and details:"
-          kubectl describe pod $POD_NAME -n $NAMESPACE
+          kubectl describe pod $POD_NAME -n $NAMESPACE || true
           echo "Pod logs:"
-          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true
+          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true || true
           echo "Previous pod logs (if any):"
-          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true --previous
+          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true --previous || true
         fi
         
-        echo "Checking node status..."
-        kubectl describe nodes
+        echo "=== Checking Node Status ==="
+        kubectl describe nodes || true
         
-        echo "Checking all resources in namespace..."
-        kubectl get all -n $NAMESPACE
+        echo "=== Checking All Resources in Namespace ==="
+        kubectl get all -n $NAMESPACE || true
         
-        echo "Checking secrets in namespace..."
-        kubectl get secrets -n $NAMESPACE
+        echo "=== Checking Secrets in Namespace ==="
+        kubectl get secrets -n $NAMESPACE || true
         
-        echo "Checking events in namespace..."
-        kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' 
+        echo "=== Checking Events in Namespace ==="
+        kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' || true
+        
+        echo "=== Checking Service Account Permissions ==="
+        gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role,bindings.members)" || true 
