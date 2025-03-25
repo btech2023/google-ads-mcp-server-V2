@@ -91,6 +91,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: test
+    env:
+      KUBECONFIG: ${{ github.workspace }}/kubeconfig.yaml
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -102,26 +104,31 @@ jobs:
         run: |
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           chmod 600 kubeconfig.yaml
-          export KUBECONFIG=kubeconfig.yaml
       
       - name: Set up Kustomize
         run: |
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
+          
+      - name: Debug Kubernetes configuration
+        run: |
+          kubectl config view
+          kubectl config current-context
+          kubectl version --client
       
       - name: Create test namespace if not exists
         run: |
-          kubectl --kubeconfig=kubeconfig.yaml create namespace test --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+          kubectl create namespace test --dry-run=client -o yaml | kubectl apply -f -
       
       - name: Create Google Ads API credentials secret
         run: |
-          kubectl --kubeconfig=kubeconfig.yaml -n test create secret generic google-ads-credentials-test \
+          kubectl -n test create secret generic google-ads-credentials-test \
             --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }} \
             --from-literal=GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }} \
             --from-literal=GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }} \
             --from-literal=GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }} \
             --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }} \
-            --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+            --dry-run=client -o yaml | kubectl apply -f -
       
       - name: Deploy to test environment
         run: |
@@ -135,11 +142,12 @@ jobs:
           kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
           
           # Build and apply with validation disabled for CI environment
-          kustomize build . | kubectl --kubeconfig=../../kubeconfig.yaml apply --validate=false -f -
+          kustomize build . | kubectl apply --validate=false -f -
       
       - name: Verify deployment
         run: |
-          kubectl --kubeconfig=kubeconfig.yaml -n test rollout status deployment/google-ads-mcp-server --timeout=120s
+          kubectl -n test rollout status deployment/google-ads-mcp-server --timeout=180s
+          kubectl get deployments,services -n test
       
       - name: Post-deployment healthcheck
         run: |
@@ -147,7 +155,7 @@ jobs:
           sleep 30
           
           # Get service URL
-          SERVICE_IP=$(kubectl --kubeconfig=kubeconfig.yaml -n test get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          SERVICE_IP=$(kubectl -n test get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           
           # Check health endpoint
           if [[ -n "$SERVICE_IP" ]]; then
