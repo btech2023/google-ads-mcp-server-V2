@@ -11,7 +11,7 @@ env:
   GKE_CLUSTER: google-ads-mcp-cluster
   GKE_ZONE: us-central1
   REGISTRY: us-central1-docker.pkg.dev
-  REPOSITORY: ${{ env.PROJECT_ID }}/google-ads-mcp
+  REPOSITORY: ${{ secrets.GCP_PROJECT_ID }}/google-ads-mcp
   IMAGE: mcp-server
   NAMESPACE: google-ads-mcp
   DEPLOYMENT_NAME: mcp-server
