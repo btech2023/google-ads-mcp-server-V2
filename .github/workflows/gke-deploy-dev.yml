@@ -51,6 +51,12 @@ jobs:
         echo "- Google Cloud SDK version: $(gcloud --version | head -n 1)"
         echo "- Testing cluster connectivity:"
         kubectl get namespaces
+        echo "- Current context:"
+        kubectl config current-context
+        echo "- Available contexts:"
+        kubectl config get-contexts
+        echo "- Node status:"
+        kubectl get nodes
         
     - name: Build Docker Image
       run: |
