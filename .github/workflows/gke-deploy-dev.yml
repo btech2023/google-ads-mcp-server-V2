@@ -1,187 +1,173 @@
-name: Deploy to GKE Dev Environment
+name: Deploy to GKE Dev
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+      - dev
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GKE_CLUSTER: google-ads-mcp-cluster
   GKE_ZONE: us-central1
-  IMAGE: google-ads-mcp-server
-  NAMESPACE: dev
   REGISTRY: us-central1-docker.pkg.dev
+  REPOSITORY: ${{ env.PROJECT_ID }}/google-ads-mcp
+  IMAGE: mcp-server
+  NAMESPACE: google-ads-mcp
+  DEPLOYMENT_NAME: mcp-server
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Deploy to GKE
     runs-on: ubuntu-latest
-    
+    environment: dev
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
-      
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        
-    - name: Install and Verify MCP
-      run: |
-        python -m pip install --upgrade pip
-        echo "Checking if MCP can be installed from GitHub..."
-        pip install "mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git"
-        echo "Verifying MCP installation..."
-        python -c "import mcp; print('Successfully installed MCP')"
-        echo "Installing all requirements..."
-        pip install -r requirements.txt
-        
-    - name: Auth to Google Cloud
-      uses: google-github-actions/auth@v2
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      id: auth
+      uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
         project_id: ${{ env.PROJECT_ID }}
-        
+
     - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
+      uses: google-github-actions/setup-gcloud@v1
       with:
         project_id: ${{ env.PROJECT_ID }}
-        
+
+    - name: Install GKE auth plugin
+      run: |
+        echo "Installing GKE auth plugin..."
+        gcloud components install gke-gcloud-auth-plugin
+        echo "Setting USE_GKE_GCLOUD_AUTH_PLUGIN=True"
+        echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+        echo "Verifying installation..."
+        which gke-gcloud-auth-plugin || echo "Plugin not found in PATH"
+
     - name: Configure Docker for Artifact Registry
       run: |
-        gcloud auth configure-docker $REGISTRY
+        echo "Configuring Docker for Artifact Registry..."
+        gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+    - name: Get GKE credentials
+      run: |
+        echo "Getting GKE credentials..."
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --region=${{ env.GKE_ZONE }} \
+          --project=${{ env.PROJECT_ID }}
         
+        echo "Verifying cluster connection..."
+        kubectl config current-context
+        kubectl get namespaces
+
     - name: Verify Service Account Permissions
       run: |
         echo "Verifying service account permissions..."
-        SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-        echo "Active service account: $SERVICE_ACCOUNT"
+        echo "Active account:"
+        gcloud auth list
         
-        echo "Checking IAM policy for the project..."
-        gcloud projects get-iam-policy $PROJECT_ID \
+        echo "Checking IAM policy..."
+        gcloud projects get-iam-policy ${{ env.PROJECT_ID }} \
           --flatten="bindings[].members" \
           --format="table(bindings.role,bindings.members)" \
-          || echo "Failed to get IAM policy"
+          --filter="bindings.members:$(gcloud config get-value account)"
         
-        echo "Checking Artifact Registry permissions..."
-        gcloud artifacts repositories list --project=$PROJECT_ID --location=$GKE_ZONE \
-          || echo "Failed to list repositories"
-        
+        echo "Testing Artifact Registry permissions..."
+        gcloud artifacts repositories list --project=${{ env.PROJECT_ID }} || echo "No repositories found"
+
     - name: Check Artifact Registry Repository
-      id: check-repo
       run: |
         echo "Checking if repository exists..."
-        if gcloud artifacts repositories describe $IMAGE --location=$GKE_ZONE --project=$PROJECT_ID 2>/dev/null; then
-          echo "Repository exists"
-          echo "exists=true" >> $GITHUB_OUTPUT
+        if ! gcloud artifacts repositories describe ${{ env.REPOSITORY }} --location=${{ env.GKE_ZONE }} --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+          echo "Repository does not exist. Creating..."
+          gcloud artifacts repositories create ${{ env.REPOSITORY }} \
+            --repository-format=docker \
+            --location=${{ env.GKE_ZONE }} \
+            --project=${{ env.PROJECT_ID }} \
+            --description="Docker repository for MCP server"
         else
-          echo "Repository does not exist"
-          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Repository already exists"
         fi
-        
-    - name: Create Artifact Registry Repository
-      if: steps.check-repo.outputs.exists == 'false'
-      run: |
-        echo "Creating repository..."
-        if ! gcloud artifacts repositories create $IMAGE \
-          --repository-format=docker \
-          --location=$GKE_ZONE \
-          --project=$PROJECT_ID \
-          --description="Docker repository for Google Ads MCP Server"; then
-          echo "Failed to create repository. Checking permissions..."
-          gcloud projects get-iam-policy $PROJECT_ID \
-            --flatten="bindings[].members" \
-            --format="table(bindings.role,bindings.members)"
-          echo "Please ensure the service account has the 'roles/artifactregistry.admin' role"
-          exit 1
-        fi
-      continue-on-error: true
-        
-    - name: Get GKE Credentials
-      run: |
-        echo "Getting GKE credentials..."
-        gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
-        echo "Verifying Kubernetes context..."
-        kubectl config current-context
-        echo "Verifying cluster access..."
-        kubectl get nodes
-        
+
     - name: Build and Push Docker Image
       run: |
         echo "Building Docker image..."
-        docker build -t $REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA .
-        echo "Pushing to Artifact Registry..."
-        docker push $REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+        docker build -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} .
         
-    - name: Create Kubernetes Secret
+        echo "Pushing Docker image..."
+        docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
+
+    - name: Create Kubernetes Secrets
       run: |
-        echo "Creating Kubernetes secret for Google Ads credentials..."
+        echo "Creating Kubernetes secrets..."
+        # Create namespace if it doesn't exist
+        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Create Google Ads credentials secret
+        echo "${{ secrets.GOOGLE_ADS_CREDENTIALS }}" | base64 -d > credentials.json
         kubectl create secret generic google-ads-credentials \
-          --from-file=credentials.json=${{ secrets.GOOGLE_ADS_CREDENTIALS }} \
-          --namespace=$NAMESPACE \
+          --from-file=credentials.json \
+          --namespace=${{ env.NAMESPACE }} \
           --dry-run=client -o yaml | kubectl apply -f -
         
+        # Create Artifact Registry secret
+        kubectl create secret docker-registry artifact-registry-secret \
+          --docker-server=${{ env.REGISTRY }} \
+          --docker-username=_json_key \
+          --docker-password="$(cat ${{ secrets.GCP_SA_KEY }})" \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+
     - name: Deploy to GKE
       run: |
         echo "Deploying to GKE..."
-        cd kubernetes/overlays/dev
-        kustomize edit fix
-        kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=$REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA
-        kustomize build . | kubectl apply -f -
+        # Update image in deployment
+        kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
+          ${{ env.DEPLOYMENT_NAME }}=${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
+          --namespace=${{ env.NAMESPACE }}
         
+        # Wait for rollout
+        kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+          --namespace=${{ env.NAMESPACE }} \
+          --timeout=300s
+
     - name: Verify Deployment
       run: |
-        echo "Waiting for deployment to stabilize..."
-        kubectl rollout status deployment/google-ads-mcp-server -n $NAMESPACE --timeout=300s
+        echo "Verifying deployment..."
+        # Check pod status
+        kubectl get pods -n ${{ env.NAMESPACE }} -o wide
         
-        echo "Checking pod status..."
-        kubectl get pods -n $NAMESPACE
+        # Check deployment status
+        kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o yaml
         
-        echo "Testing health endpoint..."
-        sleep 30  # Give the pod time to start
-        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
-        kubectl exec -n $NAMESPACE $POD_NAME -- curl -v http://localhost:8000/health
-        
-    - name: Debug Deployment Failure
+        # Check service status
+        kubectl get service ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o yaml
+
+    - name: Debug Deployment
       if: failure()
       run: |
-        echo "=== Checking GKE Authentication ==="
-        echo "Current context:"
-        kubectl config current-context || true
-        echo "Available contexts:"
-        kubectl config get-contexts || true
+        echo "=== Debugging Deployment ==="
+        echo "1. Checking node status..."
+        kubectl get nodes -o wide
         
-        echo "=== Checking Pod Status ==="
-        kubectl get pods -n $NAMESPACE || true
+        echo "2. Checking namespace resources..."
+        kubectl get all -n ${{ env.NAMESPACE }} -o wide
         
-        echo "=== Checking Deployment Details ==="
-        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE || true
+        echo "3. Checking secrets in namespace..."
+        kubectl get secrets -n ${{ env.NAMESPACE }}
         
-        echo "=== Getting Pod Details and Logs ==="
-        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}" || true)
-        if [ -n "$POD_NAME" ]; then
-          echo "Pod events and details:"
-          kubectl describe pod $POD_NAME -n $NAMESPACE || true
-          echo "Pod logs:"
-          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true || true
-          echo "Previous pod logs (if any):"
-          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true --previous || true
-        fi
+        echo "4. Checking events in namespace (sorted by timestamp)..."
+        kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp'
         
-        echo "=== Checking Node Status ==="
-        kubectl describe nodes || true
-        
-        echo "=== Checking All Resources in Namespace ==="
-        kubectl get all -n $NAMESPACE || true
-        
-        echo "=== Checking Secrets in Namespace ==="
-        kubectl get secrets -n $NAMESPACE || true
-        
-        echo "=== Checking Events in Namespace ==="
-        kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' || true
-        
-        echo "=== Checking Service Account Permissions ==="
-        gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role,bindings.members)" || true 
+        echo "5. Checking pod logs..."
+        for pod in $(kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.DEPLOYMENT_NAME }} -o name); do
+          echo "=== Logs for $pod ==="
+          kubectl logs -n ${{ env.NAMESPACE }} $pod --all-containers=true
+          echo "=== Previous pod logs ==="
+          kubectl logs -n ${{ env.NAMESPACE }} $pod --all-containers=true --previous || true
+          echo "=== Pod events and status ==="
+          kubectl describe -n ${{ env.NAMESPACE }} $pod
+        done 
