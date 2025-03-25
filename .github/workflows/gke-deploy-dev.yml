@@ -132,6 +132,20 @@ jobs:
         if [ -n "$POD_NAME" ]; then
           echo "Pod events and details:"
           kubectl describe pod $POD_NAME -n $NAMESPACE
-          echo "Pod logs (if available):"
-          kubectl logs $POD_NAME -n $NAMESPACE --tail=100 || echo "Unable to get logs"
-        fi 
+          echo "Pod logs:"
+          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true
+          echo "Previous pod logs (if any):"
+          kubectl logs $POD_NAME -n $NAMESPACE --all-containers=true --previous
+        fi
+        
+        echo "Checking node status..."
+        kubectl describe nodes
+        
+        echo "Checking all resources in namespace..."
+        kubectl get all -n $NAMESPACE
+        
+        echo "Checking secrets in namespace..."
+        kubectl get secrets -n $NAMESPACE
+        
+        echo "Checking events in namespace..."
+        kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' 
