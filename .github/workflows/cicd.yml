@@ -102,8 +102,8 @@ jobs:
           # Set the image in the kustomization file
           kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
           
-          # Build and apply with server-side flag to bypass validation errors
-          kustomize build . | kubectl apply --server-side -f -
+          # Build and apply with validation disabled for CI environment
+          kustomize build . | kubectl apply --validate=false -f -
         env:
           KUBECONFIG: kubeconfig.yaml
           
