@@ -134,8 +134,8 @@ jobs:
           # Set the image in the kustomization file
           kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
           
-          # Build and apply (simplest form)
-          kustomize build . | kubectl --kubeconfig=../../kubeconfig.yaml apply -f -
+          # Build and apply with server-side flag to bypass validation errors
+          kustomize build . | kubectl --kubeconfig=../../kubeconfig.yaml apply --server-side -f -
       
       - name: Verify deployment
         run: |
