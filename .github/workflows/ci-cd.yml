@@ -91,8 +91,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: test
-    env:
-      KUBECONFIG: ${{ github.workspace }}/kubeconfig.yaml
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -100,10 +98,17 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
       
-      - name: Set up Kubernetes config
-        run: |
-          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
-          chmod 600 kubeconfig.yaml
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: 'google-ads-mcp-cluster'
+          location: 'us-central1'
+          project_id: 'western-lambda-454123-h8'
       
       - name: Set up Kustomize
         run: |
@@ -115,6 +120,7 @@ jobs:
           kubectl config view
           kubectl config current-context
           kubectl version --client
+          kubectl get nodes
       
       - name: Create test namespace if not exists
         run: |
