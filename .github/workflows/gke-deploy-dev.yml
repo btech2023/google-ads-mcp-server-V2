@@ -1,8 +1,8 @@
-name: Build and Deploy to GKE Dev Environment
+name: Deploy to GKE Dev Environment
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ main, dev ]
   workflow_dispatch:
 
 env:
@@ -11,10 +11,11 @@ env:
   GKE_ZONE: us-central1
   IMAGE: google-ads-mcp-server
   NAMESPACE: dev
+  REGISTRY: us-central1-docker.pkg.dev
 
 jobs:
-  setup-build-publish-deploy:
-    name: Setup, Build, Publish, and Deploy to Dev
+  deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     
     steps:
@@ -23,6 +24,11 @@ jobs:
       with:
         submodules: recursive
       
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
     - name: Auth to Google Cloud
       uses: google-github-actions/auth@v2
       with:
@@ -33,9 +39,18 @@ jobs:
       with:
         install_components: 'gke-gcloud-auth-plugin'
         
-    - name: Auth Docker
-      run: gcloud auth configure-docker
-      
+    - name: Configure Docker with Artifact Registry
+      run: |
+        gcloud auth configure-docker $REGISTRY
+        
+    - name: Build Docker Image
+      run: |
+        docker build -t $REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA .
+        
+    - name: Push Docker Image
+      run: |
+        docker push $REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+        
     - name: Get GKE Credentials
       uses: google-github-actions/get-gke-credentials@v2
       with:
@@ -46,86 +61,67 @@ jobs:
     - name: Debug Kubernetes Configuration
       run: |
         echo "⚙️ Kubernetes Configuration Debug"
-        echo "- GitHub Runner: $(uname -a)"
         echo "- kubectl version: $(kubectl version --client)"
-        echo "- Google Cloud SDK version: $(gcloud --version | head -n 1)"
-        echo "- Testing cluster connectivity:"
+        echo "- Current context: $(kubectl config current-context)"
+        echo "- Available namespaces:"
         kubectl get namespaces
-        echo "- Current context:"
-        kubectl config current-context
-        echo "- Available contexts:"
-        kubectl config get-contexts
-        echo "- Node status:"
-        kubectl get nodes
         
-    - name: Build Docker Image
+    - name: Update deployment image
       run: |
-        docker build -t gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA .
+        # Replace the placeholder image with the actual image
+        sed -i "s|gcr.io/PROJECT_ID/google-ads-mcp-server:TAG|$REGISTRY/$PROJECT_ID/$IMAGE:$GITHUB_SHA|g" kubernetes/base/deployment.yaml
         
-    - name: Push Docker Image
+    - name: Verify and Create Secret
       run: |
-        docker push gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+        # First, check if the secret already exists
+        echo "Checking if google-ads-credentials secret exists in $NAMESPACE namespace..."
+        if kubectl get secret google-ads-credentials -n $NAMESPACE > /dev/null 2>&1; then
+          echo "Secret already exists, deleting it before recreation..."
+          kubectl delete secret google-ads-credentials -n $NAMESPACE
+        else
+          echo "Secret does not exist, creating it..."
+        fi
         
-    - name: Update Kubernetes resources
-      run: |
-        # Replace the placeholder image with the actual image in the deployment
-        sed -i "s|gcr.io/PROJECT_ID/google-ads-mcp-server:TAG|gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA|g" kubernetes/base/deployment.yaml
-        
-    - name: Deploy to GKE Dev Environment
-      run: |
         # Create namespace if it doesn't exist
-        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
         
-        # Create secret with actual credentials
-        echo "Creating google-ads-credentials secret in ${{ env.NAMESPACE }} namespace"
+        # Create the secret explicitly (without --dry-run)
+        echo "Creating google-ads-credentials secret in $NAMESPACE namespace"
         kubectl create secret generic google-ads-credentials \
-          --namespace=${{ env.NAMESPACE }} \
+          --namespace=$NAMESPACE \
           --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }} \
           --from-literal=GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }} \
           --from-literal=GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }} \
           --from-literal=GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }} \
-          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }} \
-          --dry-run=client -o yaml | kubectl apply -f -
+          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
         
-        # Verify secret was created
-        echo "Verifying secret exists in ${{ env.NAMESPACE }} namespace"
-        kubectl get secret google-ads-credentials -n ${{ env.NAMESPACE }}
+        # Verify the secret was created
+        echo "Verifying secret exists..."
+        kubectl get secret google-ads-credentials -n $NAMESPACE
         
-        # Deploy using kustomize
+    - name: Deploy to Kubernetes
+      run: |
         echo "Deploying application with kustomize"
-        ./kustomize build kubernetes/overlays/${{ env.NAMESPACE }} | kubectl apply --validate=false -f -
+        ./kustomize build kubernetes/overlays/$NAMESPACE | kubectl apply --validate=false -f -
         
-        # Wait for deployment to finish
+        # Wait for deployment to finish with increased timeout
         echo "Waiting for deployment to stabilize..."
-        kubectl rollout status deployment/google-ads-mcp-server -n ${{ env.NAMESPACE }} --timeout=300s
+        kubectl rollout status deployment/google-ads-mcp-server -n $NAMESPACE --timeout=300s
         
     - name: Debug Deployment Failure
       if: failure()
       run: |
         echo "Checking pod status..."
-        kubectl get pods -n ${{ env.NAMESPACE }}
+        kubectl get pods -n $NAMESPACE
         
         echo "Checking deployment details..."
-        kubectl describe deployment google-ads-mcp-server -n ${{ env.NAMESPACE }}
+        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE
         
         echo "Getting pod details and logs..."
-        POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
+        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
         if [ -n "$POD_NAME" ]; then
           echo "Pod events and details:"
-          kubectl describe pod $POD_NAME -n ${{ env.NAMESPACE }}
-          echo "Pod logs:"
-          kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} || echo "Error: Unable to get logs"
-        fi
-        
-    - name: Verify deployment
-      run: |
-        # Get the pod name
-        POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
-        
-        # Check the pod status
-        if [ -n "$POD_NAME" ]; then
-          echo "Pod status:"
-          kubectl get pod $POD_NAME -n ${{ env.NAMESPACE }} -o wide
-        else
-          echo "No pods found for deployment"
+          kubectl describe pod $POD_NAME -n $NAMESPACE
+          echo "Pod logs (if available):"
+          kubectl logs $POD_NAME -n $NAMESPACE --tail=100 || echo "Unable to get logs"
         fi 
