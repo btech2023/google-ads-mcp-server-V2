@@ -1,0 +1,152 @@
+name: Build and Deploy to GKE (Fixed)
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: google-ads-mcp-cluster
+  GKE_ZONE: us-central1
+  IMAGE: google-ads-mcp-server
+  NAMESPACE: dev
+  REGISTRY: us-central1-docker.pkg.dev
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    # Authenticate to Google Cloud with proper version
+    - name: Auth to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        # This is important for proper authentication
+        token_format: 'access_token'
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
+        
+    # Create Artifact Registry repository if it doesn't exist
+    - name: Create Artifact Registry Repository
+      run: |
+        echo "Checking if repository exists..."
+        if ! gcloud artifacts repositories describe $IMAGE --location=us-central1 --project=$PROJECT_ID 2>/dev/null; then
+          echo "Repository doesn't exist. Creating repository $IMAGE..."
+          gcloud artifacts repositories create $IMAGE \
+            --repository-format=docker \
+            --location=us-central1 \
+            --description="Repository for Google Ads MCP Server" \
+            --project=$PROJECT_ID
+        else
+          echo "Repository $IMAGE already exists."
+        fi
+        
+    # Configure Docker with Artifact Registry
+    - name: Configure Docker with Artifact Registry
+      run: |
+        gcloud auth configure-docker $REGISTRY --quiet
+        
+    # Build and tag Docker image for Artifact Registry
+    - name: Build Docker Image
+      run: |
+        docker build -t $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA .
+        
+    # Push Docker image to Artifact Registry
+    - name: Push Docker Image
+      run: |
+        docker push $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA
+        
+    # Get GKE credentials directly using gcloud command
+    - name: Get GKE Credentials
+      run: |
+        gcloud container clusters get-credentials $GKE_CLUSTER \
+          --zone $GKE_ZONE \
+          --project $PROJECT_ID
+          
+    # Verify kubectl configuration is working
+    - name: Verify kubectl configuration
+      run: |
+        echo "Verifying kubectl configuration:"
+        kubectl config view
+        echo "Current context:"
+        kubectl config current-context
+        echo "Testing connection to cluster:"
+        kubectl get namespaces
+        
+    # Update deployment image reference to use Artifact Registry
+    - name: Update deployment image
+      run: |
+        # Replace the placeholder image with the actual Artifact Registry image
+        sed -i "s|gcr.io/PROJECT_ID/google-ads-mcp-server:TAG|$REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA|g" kubernetes/base/deployment.yaml
+        
+    # Explicitly create and verify secret existence
+    - name: Create and verify secret
+      run: |
+        # Create namespace if it doesn't exist
+        kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Check if secret exists and delete it if it does
+        if kubectl get secret google-ads-credentials -n $NAMESPACE 2>/dev/null; then
+          echo "Secret exists, deleting it for recreation..."
+          kubectl delete secret google-ads-credentials -n $NAMESPACE
+        fi
+        
+        # Create secret
+        echo "Creating google-ads-credentials secret in $NAMESPACE namespace..."
+        kubectl create secret generic google-ads-credentials \
+          --namespace=$NAMESPACE \
+          --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN="${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_ID="${{ secrets.GOOGLE_ADS_CLIENT_ID }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_SECRET="${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}" \
+          --from-literal=GOOGLE_ADS_REFRESH_TOKEN="${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID="${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}"
+        
+        # Verify secret was created
+        echo "Verifying secret exists..."
+        kubectl get secret google-ads-credentials -n $NAMESPACE
+        
+    # Deploy application with kustomize but skip validation
+    - name: Deploy to Kubernetes
+      run: |
+        echo "Deploying application with kustomize..."
+        ./kustomize build kubernetes/overlays/$NAMESPACE | kubectl apply --validate=false -f -
+        
+        # Wait for deployment to finish with increased timeout
+        echo "Waiting for deployment to stabilize..."
+        kubectl rollout status deployment/google-ads-mcp-server -n $NAMESPACE --timeout=300s
+        
+    # Debug deployment failure in case of issues
+    - name: Debug Deployment Failure
+      if: failure()
+      run: |
+        echo "Checking pod status..."
+        kubectl get pods -n $NAMESPACE
+        
+        echo "Checking deployment details..."
+        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE
+        
+        echo "Getting pod details and logs..."
+        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Pod events and details:"
+          kubectl describe pod $POD_NAME -n $NAMESPACE
+          echo "Pod logs (if available):"
+          kubectl logs $POD_NAME -n $NAMESPACE --tail=100 || echo "Unable to get logs"
+        fi
