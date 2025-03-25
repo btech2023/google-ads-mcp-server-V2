@@ -54,6 +54,22 @@ jobs:
       run: |
         gcloud auth configure-docker $REGISTRY
         
+    - name: Verify Service Account Permissions
+      run: |
+        echo "Verifying service account permissions..."
+        SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+        echo "Active service account: $SERVICE_ACCOUNT"
+        
+        echo "Checking IAM policy for the project..."
+        gcloud projects get-iam-policy $PROJECT_ID \
+          --flatten="bindings[].members" \
+          --format="table(bindings.role,bindings.members)" \
+          || echo "Failed to get IAM policy"
+        
+        echo "Checking Artifact Registry permissions..."
+        gcloud artifacts repositories list --project=$PROJECT_ID --location=$GKE_ZONE \
+          || echo "Failed to list repositories"
+        
     - name: Check Artifact Registry Repository
       id: check-repo
       run: |
@@ -70,12 +86,19 @@ jobs:
       if: steps.check-repo.outputs.exists == 'false'
       run: |
         echo "Creating repository..."
-        gcloud artifacts repositories create $IMAGE \
+        if ! gcloud artifacts repositories create $IMAGE \
           --repository-format=docker \
           --location=$GKE_ZONE \
           --project=$PROJECT_ID \
-          --description="Docker repository for Google Ads MCP Server"
-      continue-on-error: true  # Continue even if repository creation fails
+          --description="Docker repository for Google Ads MCP Server"; then
+          echo "Failed to create repository. Checking permissions..."
+          gcloud projects get-iam-policy $PROJECT_ID \
+            --flatten="bindings[].members" \
+            --format="table(bindings.role,bindings.members)"
+          echo "Please ensure the service account has the 'roles/artifactregistry.admin' role"
+          exit 1
+        fi
+      continue-on-error: true
         
     - name: Get GKE Credentials
       run: |
