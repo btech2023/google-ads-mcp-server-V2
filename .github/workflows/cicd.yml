@@ -75,23 +75,43 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: development
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GKE_CLUSTER: google-ads-mcp-cluster
+      GKE_ZONE: us-central1
     steps:
       - uses: actions/checkout@v3
       
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         
-      - name: Auth to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: 'Authenticate to Google Cloud'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v1'
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          
+      - name: Install GKE auth plugin
+        run: |
+          echo "Installing GKE auth plugin..."
+          gcloud components install gke-gcloud-auth-plugin
+          echo "Setting USE_GKE_GCLOUD_AUTH_PLUGIN=True"
+          echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+          echo "Verifying installation..."
+          which gke-gcloud-auth-plugin || echo "Plugin not found in PATH"
 
       - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
+        uses: google-github-actions/get-gke-credentials@v1
         with:
-          cluster_name: 'google-ads-mcp-cluster'
-          location: 'us-central1'
-          project_id: 'western-lambda-454123-h8'
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+          project_id: ${{ env.PROJECT_ID }}
           
       - name: Set up Kustomize
         run: |
