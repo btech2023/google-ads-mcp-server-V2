@@ -125,6 +125,25 @@ jobs:
           kubectl version --client
           kubectl get nodes
           
+      - name: Create Google Ads credentials secret
+        run: |
+          echo "Creating Google Ads credentials secret in dev namespace..."
+          
+          # Delete the secret if it already exists to ensure clean update
+          kubectl delete secret google-ads-credentials -n dev --ignore-not-found
+          
+          # Create the secret using all required Google Ads API credentials
+          kubectl create secret generic google-ads-credentials -n dev \
+            --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN="${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" \
+            --from-literal=GOOGLE_ADS_CLIENT_ID="${{ secrets.GOOGLE_ADS_CLIENT_ID }}" \
+            --from-literal=GOOGLE_ADS_CLIENT_SECRET="${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}" \
+            --from-literal=GOOGLE_ADS_REFRESH_TOKEN="${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}" \
+            --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID="${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}" \
+            --from-literal=GOOGLE_ADS_CLIENT_CUSTOMER_ID="${{ secrets.GOOGLE_ADS_CLIENT_CUSTOMER_ID }}"
+          
+          # Verify the secret was created
+          kubectl get secret google-ads-credentials -n dev
+          
       - name: Deploy to Kubernetes
         run: |
           # Create dev namespace if it doesn't exist
