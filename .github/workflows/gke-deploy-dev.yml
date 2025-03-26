@@ -26,6 +26,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Set up authentication to Google Cloud
     - name: Google Auth
       id: auth
       uses: google-github-actions/auth@v1
@@ -33,11 +34,13 @@ jobs:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
         project_id: ${{ env.PROJECT_ID }}
 
+    # Set up Cloud SDK after authentication
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       with:
         project_id: ${{ env.PROJECT_ID }}
 
+    # Install GKE auth plugin for kubectl
     - name: Install GKE auth plugin
       run: |
         echo "Installing GKE auth plugin..."
@@ -47,22 +50,28 @@ jobs:
         echo "Verifying installation..."
         which gke-gcloud-auth-plugin || echo "Plugin not found in PATH"
 
+    # Configure Docker to use gcloud credentials
     - name: Configure Docker for Artifact Registry
       run: |
         echo "Configuring Docker for Artifact Registry..."
         gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
 
+    # Get GKE credentials using the action
     - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v1
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        project_id: ${{ env.PROJECT_ID }}
+
+    # Verify the connection to the cluster
+    - name: Verify Kubernetes Connection
       run: |
-        echo "Getting GKE credentials..."
-        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
-          --region=${{ env.GKE_ZONE }} \
-          --project=${{ env.PROJECT_ID }}
-        
         echo "Verifying cluster connection..."
         kubectl config current-context
         kubectl get namespaces
 
+    # Continue with the rest of the workflow...
     - name: Verify Service Account Permissions
       run: |
         echo "Verifying service account permissions..."
@@ -78,6 +87,7 @@ jobs:
         echo "Testing Artifact Registry permissions..."
         gcloud artifacts repositories list --project=${{ env.PROJECT_ID }} || echo "No repositories found"
 
+    # Rest of the workflow remains unchanged
     - name: Check Artifact Registry Repository
       run: |
         echo "Checking if repository exists..."
