@@ -38,7 +38,8 @@ mcp = FastMCP(
 
 # Create FastAPI app for HTTP endpoints (like health checks)
 app = FastAPI(title="Google Ads MCP Server API")
-mcp.mount_to_app(app)
+# Fix: Mount the MCP's SSE app to the FastAPI app at the /mcp path
+app.mount("/mcp", mcp.sse_app())
 
 # HTTP health check endpoint for container probes
 @app.get("/health")
@@ -484,4 +485,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
     logger.info(f"Server will be available at http://localhost:{port}")
     logger.info(f"Health check endpoint: http://localhost:{port}/health")
+    logger.info(f"MCP server will be available at http://localhost:{port}/mcp")
     uvicorn.run(app, host="0.0.0.0", port=port) 
