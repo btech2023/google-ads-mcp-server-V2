@@ -1,0 +1,185 @@
+{
+  "displayName": "Google Ads MCP Server Dashboard",
+  "gridLayout": {
+    "columns": 12,
+    "widgets": [
+      {
+        "title": "HTTP Request Count",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_RATE",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": [
+                      "metric.label.\"status\""
+                    ]
+                  }
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "STACKED_BAR",
+              "legendTemplate": "Status: ${metric.label.status}"
+            }
+          ],
+          "yAxis": {
+            "label": "Requests per second",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "HTTP Request Latency (p95)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_http_request_duration_seconds/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": []
+                  }
+                },
+                "unitOverride": "s"
+              },
+              "plotType": "LINE"
+            }
+          ],
+          "yAxis": {
+            "label": "Latency (seconds)",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Google Ads API Requests",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_google_ads_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_RATE",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": [
+                      "metric.label.\"endpoint\"",
+                      "metric.label.\"status\""
+                    ]
+                  }
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "STACKED_BAR",
+              "legendTemplate": "${metric.label.endpoint} - ${metric.label.status}"
+            }
+          ],
+          "yAxis": {
+            "label": "Requests per second",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Google Ads API Latency (p95)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_google_ads_request_duration_seconds/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": [
+                      "metric.label.\"endpoint\""
+                    ]
+                  }
+                },
+                "unitOverride": "s"
+              },
+              "plotType": "LINE",
+              "legendTemplate": "Endpoint: ${metric.label.endpoint}"
+            }
+          ],
+          "yAxis": {
+            "label": "Latency (seconds)",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Memory Usage",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/memory/used_bytes\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": []
+                  }
+                },
+                "unitOverride": "By"
+              },
+              "plotType": "LINE",
+              "legendTemplate": "Memory Usage"
+            },
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/memory/limit_bytes\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": []
+                  }
+                },
+                "unitOverride": "By"
+              },
+              "plotType": "LINE",
+              "legendTemplate": "Memory Limit"
+            }
+          ],
+          "yAxis": {
+            "label": "Bytes",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "CPU Usage",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/cpu/core_usage_time\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_RATE",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": []
+                  }
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "LINE",
+              "legendTemplate": "CPU Usage"
+            }
+          ],
+          "yAxis": {
+            "label": "CPU cores",
+            "scale": "LINEAR"
+          }
+        }
+      }
+    ]
+  }
+} 

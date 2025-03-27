@@ -1,0 +1,34 @@
+{
+  "displayName": "Google Ads MCP Server Basic Metrics",
+  "dashboardFilters": [],
+  "gridLayout": {
+    "widgets": [
+      {
+        "title": "CPU Usage",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/cpu/core_usage_time\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_RATE",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": []
+                  }
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "LINE",
+              "legendTemplate": "CPU Usage"
+            }
+          ],
+          "yAxis": {
+            "label": "CPU cores",
+            "scale": "LINEAR"
+          }
+        }
+      }
+    ]
+  }
+} 
