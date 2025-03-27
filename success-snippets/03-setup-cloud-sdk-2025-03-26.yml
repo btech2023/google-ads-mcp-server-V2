@@ -1,0 +1,9 @@
+name: Set up Cloud SDK
+uses: google-github-actions/setup-gcloud@v1
+with:
+  project_id: ${{ env.PROJECT_ID }}
+  
+# This action installs and configures the Google Cloud SDK (gcloud)
+# project_id is set to ensure gcloud commands target the correct project
+# Requires the auth step to be completed first
+# This sets up gcloud CLI for subsequent commands 

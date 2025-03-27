@@ -1,0 +1,23 @@
+name: Deploy to Kubernetes
+run: |
+  # Create dev namespace if it doesn't exist
+  kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+  
+  # Navigate to the overlay directory
+  cd kubernetes/overlays/dev
+  
+  # Fix deprecated kustomization format
+  kustomize edit fix
+  
+  # Set the image in the kustomization file
+  kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+  
+  # Build and apply with validation disabled for CI environment
+  kustomize build . | kubectl apply --validate=false -f -
+  
+# This step deploys the application to Kubernetes using Kustomize
+# First ensures the dev namespace exists using idempotent creation
+# Uses Kustomize to customize the Kubernetes manifests for the dev environment
+# Sets the image tag to use the full SHA of the current commit
+# Builds the final YAML with Kustomize and applies it to the cluster
+# --validate=false skips Kubernetes schema validation to avoid CI issues 

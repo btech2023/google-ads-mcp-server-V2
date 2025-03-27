@@ -1,0 +1,13 @@
+# Verify Deployment (FAILING) - 2025-03-26
+# This is the step that's currently failing in the workflow
+# Based on the step in cicd.yml
+
+- name: Verify deployment
+  run: |
+    # Increase timeout and add initial delay for container startup
+    echo "Waiting for deployment to stabilize..."
+    sleep 30
+    
+    # Attempt rollout status with increased timeout
+    kubectl rollout status deployment/google-ads-mcp-server -n dev --timeout=300s
+    kubectl get deployments,services -n dev 

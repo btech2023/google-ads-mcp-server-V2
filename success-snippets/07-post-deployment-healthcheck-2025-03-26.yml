@@ -1,0 +1,22 @@
+# Post-deployment healthcheck (Not reached) - 2025-03-26
+# This step is not currently being reached due to verification failure
+# Based on the step in cicd.yml
+
+- name: Post-deployment healthcheck
+  run: |
+    # Wait longer for service to be available
+    echo "Waiting for service to become available..."
+    sleep 60
+    
+    # Get service URL
+    SERVICE_IP=$(kubectl -n dev get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    
+    # Check health endpoint
+    if [[ -n "$SERVICE_IP" ]]; then
+      echo "Testing health endpoint at http://$SERVICE_IP:8000/health"
+      curl -v http://$SERVICE_IP:8000/health || true
+      curl -s http://$SERVICE_IP:8000/health | jq -e '.status == "OK"' || (echo "Health check failed"; exit 1)
+      echo "Health check passed"
+    else
+      echo "Service IP not available yet, skipping health check"
+    fi 

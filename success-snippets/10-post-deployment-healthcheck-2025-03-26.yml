@@ -1,0 +1,25 @@
+name: Post-deployment healthcheck
+run: |
+  # Wait longer for service to be available
+  echo "Waiting for service to become available..."
+  sleep 60
+  
+  # Get service URL
+  SERVICE_IP=$(kubectl -n dev get service google-ads-mcp-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  
+  # Check health endpoint
+  if [[ -n "$SERVICE_IP" ]]; then
+    echo "Testing health endpoint at http://$SERVICE_IP:8000/health"
+    curl -v http://$SERVICE_IP:8000/health || true
+    curl -s http://$SERVICE_IP:8000/health | jq -e '.status == "OK"' || (echo "Health check failed"; exit 1)
+    echo "Health check passed"
+  else
+    echo "Service IP not available yet, skipping health check"
+  fi
+  
+# This step performs a health check on the deployed application
+# First waits for the service to be fully available and load balancer to initialize
+# Retrieves the external IP address of the service
+# Makes HTTP requests to the /health endpoint to verify the application is responding
+# Uses jq to parse the JSON response and check for status: OK
+# Fails the workflow if the health check doesn't return the expected response 

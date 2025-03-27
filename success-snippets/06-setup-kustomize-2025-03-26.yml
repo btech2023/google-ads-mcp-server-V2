@@ -1,0 +1,9 @@
+name: Set up Kustomize
+run: |
+  curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+  sudo mv kustomize /usr/local/bin/
+  
+# This step downloads and installs Kustomize, a tool for customizing Kubernetes configurations
+# Installs Kustomize by downloading the installation script and running it
+# Moves the kustomize binary to /usr/local/bin to make it available in PATH
+# We use Kustomize to apply environment-specific customizations to base Kubernetes manifests 

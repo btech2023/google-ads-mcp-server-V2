@@ -1,0 +1,10 @@
+# Kubernetes Debug Configuration (Working) - 2025-03-26
+# These steps verify the Kubernetes configuration is working properly
+# Based on the steps that work in cicd.yml
+
+- name: Debug Kubernetes configuration
+  run: |
+    kubectl config view
+    kubectl config current-context
+    kubectl version --client
+    kubectl get nodes 

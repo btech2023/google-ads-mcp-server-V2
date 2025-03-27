@@ -1,0 +1,25 @@
+# Deploy to Kubernetes (Working) - 2025-03-26
+# These steps successfully deploy to Kubernetes using kustomize
+# Based on the steps that work in cicd.yml
+
+- name: Set up Kustomize
+  run: |
+    curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+    sudo mv kustomize /usr/local/bin/
+
+- name: Deploy to Kubernetes
+  run: |
+    # Create dev namespace if it doesn't exist
+    kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Navigate to the overlay directory
+    cd kubernetes/overlays/dev
+    
+    # Fix deprecated kustomization format
+    kustomize edit fix
+    
+    # Set the image in the kustomization file
+    kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
+    
+    # Build and apply with validation disabled for CI environment
+    kustomize build . | kubectl apply --validate=false -f - 

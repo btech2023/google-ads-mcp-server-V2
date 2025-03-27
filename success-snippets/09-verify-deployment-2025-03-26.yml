@@ -1,0 +1,15 @@
+name: Verify deployment
+run: |
+  # Increase timeout and add initial delay for container startup
+  echo "Waiting for deployment to stabilize..."
+  sleep 60
+  
+  # Attempt rollout status with increased timeout (10 minutes instead of 5)
+  kubectl rollout status deployment/google-ads-mcp-server -n dev --timeout=600s
+  kubectl get deployments,services -n dev
+  
+# This step verifies that the deployment was successful
+# First waits 60 seconds to allow the pods to start up
+# Then checks the rollout status with a generous 10-minute timeout
+# The timeout is important for the first deployment or when the image needs to be pulled
+# Finally gets and displays the status of all deployments and services in the dev namespace 

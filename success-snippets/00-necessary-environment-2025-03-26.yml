@@ -1,0 +1,31 @@
+# Necessary Environment Variables (Reference) - 2025-03-26
+# These are the environment variables and job setup needed for the workflow
+# Based on the setup in cicd.yml
+
+name: Google Ads MCP Server CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ... other jobs like test and build ...
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: development
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GKE_CLUSTER: google-ads-mcp-cluster
+      GKE_ZONE: us-central1
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      # ... other steps would go here ... 

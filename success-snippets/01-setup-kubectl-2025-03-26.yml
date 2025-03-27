@@ -1,0 +1,6 @@
+name: Set up kubectl
+uses: azure/setup-kubectl@v3
+# This action sets up kubectl, the Kubernetes command-line tool
+# v3 is the latest version of the action as of March 2025
+# No additional parameters needed for basic setup
+# This is a prerequisite for interacting with the Kubernetes cluster 
