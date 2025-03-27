@@ -8,13 +8,16 @@ This server exposes Google Ads API functionality through the Model Context Proto
 import os
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta
 from http import HTTPStatus
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 from google_ads_client import GoogleAdsService, GoogleAdsClientError
 from health import health_check
@@ -38,7 +41,38 @@ mcp = FastMCP(
 
 # Create FastAPI app for HTTP endpoints (like health checks)
 app = FastAPI(title="Google Ads MCP Server API")
-# Fix: Mount the MCP's SSE app to the FastAPI app at the /mcp path
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, restrict this to specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add request ID middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    """Add a unique request ID to each request for tracing."""
+    request_id = str(uuid.uuid4())
+    # You can add the request ID to the context for logging if structlog is set up
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+# Initialize monitoring if enabled
+if os.environ.get("ENABLE_METRICS", "false").lower() == "true":
+    try:
+        from monitoring import init_monitoring
+        logger.info("Initializing monitoring...")
+        init_monitoring(app)
+    except ImportError as e:
+        logger.warning(f"Monitoring module not available: {str(e)}")
+    except Exception as e:
+        logger.error(f"Failed to initialize monitoring: {str(e)}")
+
+# Mount the MCP's SSE app to the FastAPI app at the /mcp path
 app.mount("/mcp", mcp.sse_app())
 
 # HTTP health check endpoint for container probes
@@ -481,9 +515,10 @@ if __name__ == "__main__":
     logger.info("Initializing health check service...")
     
     # Start the FastAPI application with the MCP server
-    import uvicorn
     port = int(os.environ.get("PORT", "8000"))
     logger.info(f"Server will be available at http://localhost:{port}")
     logger.info(f"Health check endpoint: http://localhost:{port}/health")
     logger.info(f"MCP server will be available at http://localhost:{port}/mcp")
+    if os.environ.get("ENABLE_METRICS", "false").lower() == "true":
+        logger.info(f"Metrics endpoint: http://localhost:{port}/metrics")
     uvicorn.run(app, host="0.0.0.0", port=port) 

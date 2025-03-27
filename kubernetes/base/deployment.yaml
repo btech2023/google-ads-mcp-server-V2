@@ -19,6 +19,10 @@ spec:
     metadata:
       labels:
         app: google-ads-mcp-server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
@@ -42,6 +46,17 @@ spec:
           value: "3600"
         - name: GRACEFUL_SHUTDOWN_TIMEOUT
           value: "25"
+        # Monitoring configuration
+        - name: ENABLE_METRICS
+          value: "true" 
+        - name: ENABLE_OTEL
+          value: "false"  # Set to true when OpenTelemetry collector is available
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: ""  # Set to your OpenTelemetry collector endpoint
+        - name: LOG_FORMAT
+          value: "json"
+        - name: LOG_LEVEL
+          value: "info"
         envFrom:
         - secretRef:
             name: google-ads-credentials

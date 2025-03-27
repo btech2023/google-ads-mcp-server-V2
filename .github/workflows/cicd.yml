@@ -161,6 +161,37 @@ jobs:
           # Build and apply with validation disabled for CI environment
           kustomize build . | kubectl apply --validate=false -f -
           
+          # Apply monitoring configurations
+          kubectl apply -f ../../gcp-monitoring-config.yaml
+          
+      - name: Set up Cloud Operations
+        run: |
+          # Enable GKE monitoring for the cluster
+          gcloud container clusters update ${{ env.GKE_CLUSTER }} \
+            --zone ${{ env.GKE_ZONE }} \
+            --project ${{ env.PROJECT_ID }} \
+            --enable-stackdriver-kubernetes \
+            --enable-dataplane-v2 || true
+          
+          # Create a custom Cloud Monitoring dashboard
+          echo "Setup Cloud Monitoring dashboards..."
+          
+          # TODO: Use gcloud monitoring dashboards create command to create a custom dashboard
+          # This would be implemented when dashboard JSON is finalized
+          
+          # Create alerting policies for critical metrics
+          echo "Setting up basic alerting policies..."
+          
+          # Example alert for high error rate
+          gcloud alpha monitoring policies create \
+            --project=${{ env.PROJECT_ID }} \
+            --display-name="Google Ads MCP Server - High Error Rate" \
+            --condition-filter="resource.type = \"k8s_container\" AND resource.labels.cluster_name = \"${{ env.GKE_CLUSTER }}\" AND resource.labels.namespace_name = \"dev\" AND metric.type = \"prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge\" AND metric.labels.status = \"error\"" \
+            --condition-threshold-value=10 \
+            --condition-threshold-duration=60s \
+            --notification-channels="" \
+            || echo "Alert policy creation failed - may already exist"
+          
       - name: Verify deployment
         run: |
           # Increase timeout and add initial delay for container startup

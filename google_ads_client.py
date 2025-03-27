@@ -9,6 +9,20 @@ from datetime import datetime, timedelta
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 
+try:
+    # Import monitoring if available
+    from monitoring import record_cache_hit, record_cache_miss, monitor_google_ads_api
+    MONITORING_ENABLED = True
+except ImportError:
+    MONITORING_ENABLED = False
+    
+    # Define dummy monitoring functions if monitoring is not available
+    def record_cache_hit(): pass
+    def record_cache_miss(): pass
+    def monitor_google_ads_api(endpoint): 
+        def decorator(func): return func
+        return decorator
+
 class GoogleAdsClientError(Exception):
     """Custom exception for Google Ads client errors."""
     pass
@@ -122,13 +136,19 @@ class GoogleAdsService:
             
         entry = self.cache.get(cache_key)
         if entry is None:
+            if MONITORING_ENABLED:
+                record_cache_miss()
             return None
             
         if entry.is_expired():
             del self.cache[cache_key]
+            if MONITORING_ENABLED:
+                record_cache_miss()
             return None
             
         self.logger.info(f"Cache hit for key: {cache_key}")
+        if MONITORING_ENABLED:
+            record_cache_hit()
         return entry.data
     
     def _cache_data(self, cache_key: str, data: Any) -> None:
@@ -180,6 +200,7 @@ class GoogleAdsService:
             
         return customer_id
 
+    @monitor_google_ads_api("list_accessible_accounts")
     async def list_accessible_accounts(self) -> List[Dict[str, str]]:
         """
         List all accounts accessible from the MCC account.
@@ -239,6 +260,7 @@ class GoogleAdsService:
             self.logger.error(f"Unexpected error listing accessible accounts: {str(e)}")
             raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
     
+    @monitor_google_ads_api("get_campaigns")
     async def get_campaigns(self, start_date: str, end_date: str, customer_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get campaign performance data for the specified date range and customer ID.
@@ -335,6 +357,7 @@ class GoogleAdsService:
             self.logger.error(f"Unexpected error during Google Ads API request for customer ID {validated_customer_id}: {str(e)}")
             raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
     
+    @monitor_google_ads_api("get_account_summary")
     async def get_account_summary(self, start_date: str, end_date: str, customer_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get account summary metrics for the specified date range and customer ID.
@@ -444,6 +467,7 @@ class GoogleAdsService:
             self.logger.error(f"Unexpected error during Google Ads API request for customer ID {validated_customer_id}: {str(e)}")
             raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
             
+    @monitor_google_ads_api("get_account_hierarchy")
     async def get_account_hierarchy(self, customer_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get the account hierarchy starting from the specified customer ID.
