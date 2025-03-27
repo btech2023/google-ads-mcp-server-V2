@@ -1,0 +1,51 @@
+# Google Cloud Operations Configuration for Google Ads MCP Server
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: google-ads-mcp-server-monitoring
+  namespace: dev
+  labels:
+    app: google-ads-mcp-server
+spec:
+  selector:
+    matchLabels:
+      app: google-ads-mcp-server
+  endpoints:
+  - port: 8000
+    path: "/metrics"
+    interval: 30s  # Scrape every 30 seconds
+---
+# Use a ConfigMap for logging configuration instead
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: google-ads-mcp-server-logging
+  namespace: dev
+  labels:
+    app: google-ads-mcp-server
+data:
+  fluentbit.conf: |
+    [SERVICE]
+        Flush        1
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name             tail
+        Path             /var/log/containers/google-ads-mcp-server*.log
+        Parser           docker
+        Tag              kube.*
+        Refresh_Interval 5
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+
+    [OUTPUT]
+        Name        stackdriver
+        Match       *
+        resource    k8s_container
+        labels      app:google-ads-mcp-server,component:application
