@@ -1,0 +1,559 @@
+{
+  "displayName": "Google Ads MCP Server Dashboard",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "HTTP Request Count",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": [
+                        "metric.label.\"status\""
+                      ]
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "Status: ${metric.label.status}"
+              }
+            ],
+            "yAxis": {
+              "label": "Requests per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "HTTP Request Latency (p95)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_http_request_duration_seconds/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE"
+              }
+            ],
+            "yAxis": {
+              "label": "Latency (seconds)",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 4,
+        "widget": {
+          "title": "Google Ads API Requests",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_google_ads_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": [
+                        "metric.label.\"endpoint\"",
+                        "metric.label.\"status\""
+                      ]
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "${metric.label.endpoint} - ${metric.label.status}"
+              }
+            ],
+            "yAxis": {
+              "label": "Requests per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 4,
+        "widget": {
+          "title": "Google Ads API Latency (p95)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_google_ads_request_duration_seconds/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": [
+                        "metric.label.\"endpoint\""
+                      ]
+                    }
+                  },
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Endpoint: ${metric.label.endpoint}"
+              }
+            ],
+            "yAxis": {
+              "label": "Latency (seconds)",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 8,
+        "widget": {
+          "title": "Cache Performance",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_cache_hits_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Cache Hits"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_cache_misses_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Cache Misses"
+              }
+            ],
+            "yAxis": {
+              "label": "Operations per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 8,
+        "widget": {
+          "title": "Memory Usage",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/memory/used_bytes\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Memory Usage"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/memory/limit_bytes\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Memory Limit"
+              }
+            ],
+            "yAxis": {
+              "label": "Bytes",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 12,
+        "widget": {
+          "title": "CPU Usage",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/cpu/core_usage_time\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "CPU Usage"
+              }
+            ],
+            "yAxis": {
+              "label": "CPU cores",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 12,
+        "widget": {
+          "title": "Health Check Status",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_health_check_up/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Health Status (1=UP, 0=DOWN)"
+              }
+            ],
+            "yAxis": {
+              "label": "Status",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 16,
+        "widget": {
+          "title": "MCP Tool Requests",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_mcp_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": [
+                        "metric.label.\"tool\"",
+                        "metric.label.\"status\""
+                      ]
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "${metric.label.tool} - ${metric.label.status}"
+              }
+            ],
+            "yAxis": {
+              "label": "Requests per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 16,
+        "widget": {
+          "title": "MCP Tool Latency (p95)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_mcp_request_duration_seconds/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": [
+                        "metric.label.\"tool\""
+                      ]
+                    }
+                  },
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Tool: ${metric.label.tool}"
+              }
+            ],
+            "yAxis": {
+              "label": "Latency (seconds)",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 20,
+        "widget": {
+          "title": "Network Traffic",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/network/received_bytes_count\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By/s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Ingress"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/network/sent_bytes_count\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By/s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Egress"
+              }
+            ],
+            "yAxis": {
+              "label": "Bytes per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 20,
+        "widget": {
+          "title": "Pod Restarts",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_pod\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"pod_name\"=monitoring.regex.full_match(\"google-ads-mcp-server-.*\") metric.type=\"kubernetes.io/container/restart_count\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_DELTA",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "Pod Restarts"
+              }
+            ],
+            "yAxis": {
+              "label": "Count",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 24,
+        "widget": {
+          "title": "Error Rate Breakdown",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.label.\"status\"=\"error\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "HTTP Errors"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_google_ads_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.label.\"status\"=\"error\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Google Ads API Errors"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"prometheus.googleapis.com/google_ads_mcp_mcp_requests_total/gauge\" resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.label.\"status\"=\"error\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "1"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "MCP Tool Errors"
+              }
+            ],
+            "yAxis": {
+              "label": "Errors per second",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 24,
+        "widget": {
+          "title": "Filesystem Usage",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/ephemeral_storage/used_bytes\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Storage Used"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"k8s_container\" resource.label.\"namespace_name\"=\"dev\" resource.label.\"container_name\"=\"google-ads-mcp-server\" metric.type=\"kubernetes.io/container/ephemeral_storage/limit_bytes\"",
+                    "aggregation": {
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": []
+                    }
+                  },
+                  "unitOverride": "By"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "Storage Limit"
+              }
+            ],
+            "yAxis": {
+              "label": "Bytes",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 12,
+        "height": 2,
+        "yPos": 28,
+        "widget": {
+          "title": "Service Info",
+          "text": {
+            "format": "MARKDOWN",
+            "content": "Monitoring for Google Ads MCP Server running in the dev environment.\n\nService metrics collected using Prometheus and OpenTelemetry.\n\nFor details on alerting policies and thresholds, check the documentation."
+          }
+        }
+      }
+    ]
+  }
+} 

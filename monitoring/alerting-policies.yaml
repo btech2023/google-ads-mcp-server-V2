@@ -1,0 +1,364 @@
+# Google Ads MCP Server Alerting Policies
+# These policies can be applied using gcloud commands
+
+# 1. High Latency Alert
+---
+displayName: "Google Ads MCP Server - High API Latency"
+combiner: OR
+conditions:
+  - displayName: "P95 latency above threshold for 5 minutes"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_http_request_duration_seconds/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_PERCENTILE_95
+          crossSeriesReducer: REDUCE_MEAN
+      comparison: COMPARISON_GT
+      thresholdValue: 1.0
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "API response time is exceeding 1 second (p95) for 5 minutes, indicating potential performance issues."
+  mimeType: "text/markdown"
+severity: WARNING
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 2. High Error Rate Alert
+---
+displayName: "Google Ads MCP Server - High HTTP Error Rate"
+combiner: OR
+conditions:
+  - displayName: "Error rate above 5% for 5 minutes"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.label.status="error"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          groupByFields:
+            - "metric.label.status"
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 0.05  # 5% error rate
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "HTTP error rate is above 5% for 5 minutes, indicating potential issues with the application."
+  mimeType: "text/markdown"
+severity: ERROR
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 3. Google Ads API Error Alert
+---
+displayName: "Google Ads MCP Server - Google Ads API Errors"
+combiner: OR
+conditions:
+  - displayName: "Google Ads API error rate above threshold"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_google_ads_requests_total/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.label.status="error"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 0.02  # 2% error rate
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "Google Ads API error rate is above 2% for 5 minutes, which may indicate issues with API calls or credentials."
+  mimeType: "text/markdown"
+severity: ERROR
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 4. High Memory Usage Alert
+---
+displayName: "Google Ads MCP Server - High Memory Usage"
+combiner: OR
+conditions:
+  - displayName: "Memory usage above 80% of limit"
+    conditionThreshold:
+      filter: >-
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.type="kubernetes.io/container/memory/used_bytes"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+      denominatorFilter: >-
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.type="kubernetes.io/container/memory/limit_bytes"
+      denominatorAggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+      comparison: COMPARISON_GT
+      thresholdValue: 0.8  # 80% of memory limit
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "Memory usage is above 80% of the container limit for 5 minutes, which may lead to OOM kills."
+  mimeType: "text/markdown"
+severity: WARNING
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 7200s  # Auto-close after 2 hours if condition clears
+
+# 5. High CPU Usage Alert
+---
+displayName: "Google Ads MCP Server - High CPU Usage"
+combiner: OR
+conditions:
+  - displayName: "CPU usage above 80% of limit"
+    conditionThreshold:
+      filter: >-
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.type="kubernetes.io/container/cpu/core_usage_time"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_MEAN
+      denominatorFilter: >-
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.type="kubernetes.io/container/cpu/limit_cores"
+      denominatorAggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+      comparison: COMPARISON_GT
+      thresholdValue: 0.8  # 80% of CPU limit
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "CPU usage is above 80% of the container limit for 5 minutes, which may cause performance degradation."
+  mimeType: "text/markdown"
+severity: WARNING
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 7200s  # Auto-close after 2 hours if condition clears
+
+# 6. Health Check Failure Alert
+---
+displayName: "Google Ads MCP Server - Health Check Failure"
+combiner: OR
+conditions:
+  - displayName: "Health check status is down"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_health_check_up/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+      comparison: COMPARISON_LT
+      thresholdValue: 1.0  # Health check status is 0 (down)
+      duration: 60s  # Only 1 minute to trigger quickly
+      trigger:
+        count: 1
+documentation:
+  content: "Health check is reporting the service as down, indicating the application may not be functioning correctly."
+  mimeType: "text/markdown"
+severity: CRITICAL
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 7. Pod Restart Alert
+---
+displayName: "Google Ads MCP Server - Pod Restarts"
+combiner: OR
+conditions:
+  - displayName: "Pod has restarted in the last 10 minutes"
+    conditionThreshold:
+      filter: >-
+        resource.type="k8s_pod"
+        resource.label.namespace_name="dev"
+        resource.label.pod_name=monitoring.regex.full_match("google-ads-mcp-server-.*")
+        metric.type="kubernetes.io/container/restart_count"
+      aggregations:
+        - alignmentPeriod: 600s
+          perSeriesAligner: ALIGN_DELTA
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 0  # Any restart triggers the alert
+      duration: 0s  # Trigger immediately
+      trigger:
+        count: 1
+documentation:
+  content: "One or more pods have restarted in the last 10 minutes, which could indicate application instability."
+  mimeType: "text/markdown"
+severity: WARNING
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 3600s  # Auto-close after 1 hour if condition clears
+
+# 8. MCP Tool Error Alert
+---
+displayName: "Google Ads MCP Server - MCP Tool Errors"
+combiner: OR
+conditions:
+  - displayName: "MCP tool error rate above threshold"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_mcp_requests_total/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.label.status="error"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 0.03  # 3% error rate
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "MCP tool error rate is above 3% for 5 minutes, indicating potential issues with MCP functionality."
+  mimeType: "text/markdown"
+severity: ERROR
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 9. High Latency for MCP Tools
+---
+displayName: "Google Ads MCP Server - High MCP Tool Latency"
+combiner: OR
+conditions:
+  - displayName: "P95 MCP tool latency above threshold"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_mcp_request_duration_seconds/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_PERCENTILE_95
+          crossSeriesReducer: REDUCE_MEAN
+      comparison: COMPARISON_GT
+      thresholdValue: 3.0  # 3 seconds
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "MCP tool response time is exceeding 3 seconds (p95) for 5 minutes, indicating potential performance issues."
+  mimeType: "text/markdown"
+severity: WARNING
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 1800s  # Auto-close after 30 minutes if condition clears
+
+# 10. Low Cache Hit Rate Alert
+---
+displayName: "Google Ads MCP Server - Low Cache Hit Rate"
+combiner: OR
+conditions:
+  - displayName: "Cache hit rate below threshold"
+    conditionThreshold:
+      filter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_cache_hits_total/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      denominatorFilter: >-
+        metric.type="prometheus.googleapis.com/google_ads_mcp_cache_misses_total/gauge"
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+      denominatorAggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_LT
+      thresholdValue: 0.6  # Cache hit rate below 60%
+      duration: 900s  # 15 minutes
+      trigger:
+        count: 1
+documentation:
+  content: "Cache hit rate is below 60% for 15 minutes, which may lead to unnecessary API calls and performance degradation."
+  mimeType: "text/markdown"
+severity: INFO
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 7200s  # Auto-close after 2 hours if condition clears
+
+# 11. High Network Traffic Alert
+---
+displayName: "Google Ads MCP Server - High Network Traffic"
+combiner: OR
+conditions:
+  - displayName: "Network egress above threshold"
+    conditionThreshold:
+      filter: >-
+        resource.type="k8s_container"
+        resource.label.namespace_name="dev"
+        resource.label.container_name="google-ads-mcp-server"
+        metric.type="kubernetes.io/container/network/sent_bytes_count"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+      comparison: COMPARISON_GT
+      thresholdValue: 5000000  # 5 MB/s
+      duration: 300s
+      trigger:
+        count: 1
+documentation:
+  content: "Network egress is above 5 MB/s for 5 minutes, which may indicate abnormal data transfer patterns."
+  mimeType: "text/markdown"
+severity: INFO
+notificationChannels:
+  - "projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID"  # Replace with actual notification channel
+alertStrategy:
+  autoClose: 3600s  # Auto-close after 1 hour if condition clears 
