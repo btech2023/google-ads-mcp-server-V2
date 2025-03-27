@@ -156,7 +156,7 @@ jobs:
           kustomize edit fix
           
           # Set the image in the kustomization file
-          kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-$(git rev-parse --short HEAD)
+          kustomize edit set image gcr.io/PROJECT_ID/google-ads-mcp-server=ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           
           # Build and apply with validation disabled for CI environment
           kustomize build . | kubectl apply --validate=false -f -

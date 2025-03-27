@@ -38,7 +38,7 @@ mcp = FastMCP(
 
 # Create FastAPI app for HTTP endpoints (like health checks)
 app = FastAPI(title="Google Ads MCP Server API")
-mcp.include_routers(app)
+mcp.mount_to_app(app)
 
 # HTTP health check endpoint for container probes
 @app.get("/health")
