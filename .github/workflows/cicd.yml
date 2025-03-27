@@ -79,6 +79,7 @@ jobs:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GKE_CLUSTER: google-ads-mcp-cluster
       GKE_ZONE: us-central1
+      NOTIFICATION_CHANNEL_ID: "2238048212261467922"
     steps:
       - uses: actions/checkout@v3
       
@@ -162,9 +163,9 @@ jobs:
           kustomize build . | kubectl apply --validate=false -f -
           
           # Apply monitoring configurations
-          kubectl apply -f ../../../kubernetes/overlays/dev/gcp-monitoring-config.yaml
+          kubectl apply -f gcp-monitoring-config.yaml
           
-      - name: Set up Cloud Operations
+      - name: Set up Cloud Monitoring
         run: |
           # Enable GKE monitoring for the cluster
           gcloud container clusters update ${{ env.GKE_CLUSTER }} \
@@ -173,24 +174,17 @@ jobs:
             --enable-stackdriver-kubernetes \
             --enable-dataplane-v2 || true
           
-          # Create a custom Cloud Monitoring dashboard
-          echo "Setup Cloud Monitoring dashboards..."
+          # Make the monitoring scripts executable
+          chmod +x monitoring/apply-monitoring.sh
           
-          # TODO: Use gcloud monitoring dashboards create command to create a custom dashboard
-          # This would be implemented when dashboard JSON is finalized
+          # Apply monitoring dashboard and alerting policies using our script
+          echo "Applying monitoring dashboard and alerting policies..."
+          cd monitoring
+          ./apply-monitoring.sh ${{ env.PROJECT_ID }} ${{ env.NOTIFICATION_CHANNEL_ID }} dev
           
-          # Create alerting policies for critical metrics
-          echo "Setting up basic alerting policies..."
-          
-          # Example alert for high error rate
-          gcloud alpha monitoring policies create \
-            --project=${{ env.PROJECT_ID }} \
-            --display-name="Google Ads MCP Server - High Error Rate" \
-            --condition-filter="resource.type = \"k8s_container\" AND resource.labels.cluster_name = \"${{ env.GKE_CLUSTER }}\" AND resource.labels.namespace_name = \"dev\" AND metric.type = \"prometheus.googleapis.com/google_ads_mcp_http_requests_total/gauge\" AND metric.labels.status = \"error\"" \
-            --condition-threshold-value=10 \
-            --condition-threshold-duration=60s \
-            --notification-channels="" \
-            || echo "Alert policy creation failed - may already exist"
+          echo "Monitoring configuration applied successfully."
+          echo "View dashboard at: https://console.cloud.google.com/monitoring/dashboards?project=${{ env.PROJECT_ID }}"
+          echo "View alerting policies at: https://console.cloud.google.com/monitoring/alerting?project=${{ env.PROJECT_ID }}"
           
       - name: Verify deployment
         run: |
