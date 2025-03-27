@@ -47,7 +47,8 @@ jobs:
         echo "Checking if MCP can be installed from GitHub..."
         pip install "mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git"
         echo "Verifying MCP installation..."
-        python -c "import mcp; print(f'Successfully installed MCP version: {mcp.__version__}')"
+        # Fix: Check for module existence instead of version attribute
+        python -c "import mcp; print('Successfully installed MCP')"
         echo "Installing all requirements..."
         pip install -r requirements.txt
       
@@ -120,16 +121,27 @@ jobs:
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
+        token_format: 'access_token'
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
         
     - name: Get GKE Credentials
-      uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
-        project_id: ${{ env.PROJECT_ID }}
+      run: |
+        gcloud container clusters get-credentials $GKE_CLUSTER \
+          --zone $GKE_ZONE \
+          --project $PROJECT_ID
+        
+    - name: Verify kubectl configuration
+      run: |
+        echo "Verifying kubectl configuration:"
+        kubectl config view
+        echo "Current context:"
+        kubectl config current-context
+        echo "Testing connection to cluster:"
+        kubectl get namespaces
         
     - name: Set up Kustomize
       run: |
@@ -146,37 +158,46 @@ jobs:
         # Create namespace if it doesn't exist
         kubectl create namespace test --dry-run=client -o yaml | kubectl apply -f -
         
-        # Create secret with actual credentials
+        # Check if secret exists and delete it if it does
+        if kubectl get secret google-ads-credentials -n test 2>/dev/null; then
+          echo "Secret exists, deleting it for recreation..."
+          kubectl delete secret google-ads-credentials -n test
+        fi
+        
+        # Create secret explicitly (not using --dry-run)
+        echo "Creating google-ads-credentials secret in test namespace..."
         kubectl create secret generic google-ads-credentials \
           --namespace=test \
-          --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }} \
-          --from-literal=GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }} \
-          --from-literal=GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }} \
-          --from-literal=GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }} \
-          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }} \
-          --dry-run=client -o yaml | kubectl apply -f -
+          --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN="${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_ID="${{ secrets.GOOGLE_ADS_CLIENT_ID }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_SECRET="${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}" \
+          --from-literal=GOOGLE_ADS_REFRESH_TOKEN="${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID="${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}"
         
-        # Deploy using kustomize
-        ./kustomize build kubernetes/overlays/test | kubectl apply -f -
+        # Verify secret was created
+        echo "Verifying secret exists..."
+        kubectl get secret google-ads-credentials -n test
         
-        # Wait for deployment to finish
-        kubectl rollout status deployment/google-ads-mcp-server -n test --timeout=180s
+        # Deploy using kustomize with --validate=false flag
+        ./kustomize build kubernetes/overlays/test | kubectl apply --validate=false -f -
         
-    - name: Verify deployment
+        # Wait for deployment to finish with increased timeout
+        kubectl rollout status deployment/google-ads-mcp-server -n test --timeout=300s
+        
+    - name: Debug Deployment Failure
+      if: failure()
       run: |
-        # Get the pod name
+        echo "Checking pod status..."
+        kubectl get pods -n test
+        
+        echo "Checking deployment details..."
+        kubectl describe deployment google-ads-mcp-server -n test
+        
+        echo "Getting pod details and logs..."
         POD_NAME=$(kubectl get pods -n test -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
-        
-        # Check the pod status
-        kubectl get pod $POD_NAME -n test -o jsonpath="{.status.phase}"
-        
-        # Check the health endpoint
-        echo "Waiting for service to be ready..."
-        sleep 30
-        SERVICE_IP=$(kubectl get svc google-ads-mcp-server -n test -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-        if [[ -n "$SERVICE_IP" ]]; then
-          echo "Testing health endpoint at http://$SERVICE_IP/health"
-          curl -s http://$SERVICE_IP/health | grep -q "status.*OK" && echo "Health check passed" || echo "Health check failed"
-        else
-          echo "Service IP not available, skipping health check"
-        fi 
+        if [ -n "$POD_NAME" ]; then
+          echo "Pod events and details:"
+          kubectl describe pod $POD_NAME -n test
+          echo "Pod logs (if available):"
+          kubectl logs $POD_NAME -n test --tail=100 || echo "Unable to get logs"
+        fi

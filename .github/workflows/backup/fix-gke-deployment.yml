@@ -1,0 +1,194 @@
+name: Fix GKE Deployment
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: google-ads-mcp-cluster
+  GKE_ZONE: us-central1
+  IMAGE: google-ads-mcp-server
+  NAMESPACE: dev
+  REGISTRY: us-central1-docker.pkg.dev
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Check MCP availability
+      run: |
+        python -m pip install --upgrade pip
+        echo "Checking if MCP can be installed from GitHub..."
+        pip install "mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git"
+        echo "Verifying MCP installation..."
+        # Modified to check module exists rather than version attribute
+        python -c "import mcp; print('Successfully installed MCP')"
+        echo "Installing all requirements..."
+        pip install -r requirements.txt
+        
+    - name: Auth to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        token_format: 'access_token'
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
+        
+    - name: Create Artifact Registry Repository
+      run: |
+        echo "Checking if repository exists..."
+        if ! gcloud artifacts repositories describe $IMAGE --location=us-central1 --project=$PROJECT_ID 2>/dev/null; then
+          echo "Repository doesn't exist. Creating repository $IMAGE..."
+          gcloud artifacts repositories create $IMAGE \
+            --repository-format=docker \
+            --location=us-central1 \
+            --description="Repository for Google Ads MCP Server" \
+            --project=$PROJECT_ID
+        else
+          echo "Repository $IMAGE already exists."
+        fi
+        
+    - name: Configure Docker with Artifact Registry
+      run: |
+        gcloud auth configure-docker $REGISTRY --quiet
+        
+    - name: Build Docker Image
+      run: |
+        echo "Building Docker image: $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA"
+        docker build -t $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA .
+        
+    - name: Run Tests in Container
+      run: |
+        # Create test env file
+        echo "GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" > .env.test
+        echo "GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }}" >> .env.test
+        echo "GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}" >> .env.test
+        echo "GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}" >> .env.test
+        echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}" >> .env.test
+        echo "APP_ENV=test" >> .env.test
+        echo "CACHE_ENABLED=true" >> .env.test
+        
+        # Run tests inside the container
+        docker run --rm -v $(pwd)/.env.test:/app/.env $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA python -m pytest -v
+        
+    - name: Push Docker Image
+      run: |
+        echo "Pushing Docker image: $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA"
+        docker push $REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA
+        
+  deploy:
+    name: Deploy to GKE
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+      
+    - name: Auth to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        token_format: 'access_token'
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
+        
+    - name: Get GKE Credentials
+      run: |
+        gcloud container clusters get-credentials $GKE_CLUSTER \
+          --zone $GKE_ZONE \
+          --project $PROJECT_ID
+        
+    - name: Verify kubectl configuration
+      run: |
+        echo "Verifying kubectl configuration:"
+        kubectl config view
+        echo "Current context:"
+        kubectl config current-context
+        echo "Testing connection to cluster:"
+        kubectl get namespaces
+        
+    - name: Update deployment image
+      run: |
+        # Replace the placeholder image with the actual Artifact Registry image
+        sed -i "s|gcr.io/PROJECT_ID/google-ads-mcp-server:TAG|$REGISTRY/$PROJECT_ID/$IMAGE/$IMAGE:$GITHUB_SHA|g" kubernetes/base/deployment.yaml
+        
+    - name: Create and verify secret
+      run: |
+        # Create namespace if it doesn't exist
+        kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Check if secret exists and delete it if it does
+        if kubectl get secret google-ads-credentials -n $NAMESPACE 2>/dev/null; then
+          echo "Secret exists, deleting it for recreation..."
+          kubectl delete secret google-ads-credentials -n $NAMESPACE
+        fi
+        
+        # Create secret explicitly (not using --dry-run)
+        echo "Creating google-ads-credentials secret in $NAMESPACE namespace..."
+        kubectl create secret generic google-ads-credentials \
+          --namespace=$NAMESPACE \
+          --from-literal=GOOGLE_ADS_DEVELOPER_TOKEN="${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_ID="${{ secrets.GOOGLE_ADS_CLIENT_ID }}" \
+          --from-literal=GOOGLE_ADS_CLIENT_SECRET="${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}" \
+          --from-literal=GOOGLE_ADS_REFRESH_TOKEN="${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}" \
+          --from-literal=GOOGLE_ADS_LOGIN_CUSTOMER_ID="${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}"
+        
+        # Verify secret was created
+        echo "Verifying secret exists..."
+        kubectl get secret google-ads-credentials -n $NAMESPACE
+        
+    - name: Deploy to Kubernetes
+      run: |
+        # Set up Kustomize
+        curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64
+        chmod +x kustomize
+        
+        echo "Deploying application with kustomize..."
+        ./kustomize build kubernetes/overlays/$NAMESPACE | kubectl apply --validate=false -f -
+        
+        # Wait for deployment to finish with increased timeout
+        echo "Waiting for deployment to stabilize..."
+        kubectl rollout status deployment/google-ads-mcp-server -n $NAMESPACE --timeout=300s
+        
+    - name: Debug Deployment Failure
+      if: failure()
+      run: |
+        echo "Checking pod status..."
+        kubectl get pods -n $NAMESPACE
+        
+        echo "Checking deployment details..."
+        kubectl describe deployment google-ads-mcp-server -n $NAMESPACE
+        
+        echo "Getting pod details and logs..."
+        POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=google-ads-mcp-server -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Pod events and details:"
+          kubectl describe pod $POD_NAME -n $NAMESPACE
+          echo "Pod logs (if available):"
+          kubectl logs $POD_NAME -n $NAMESPACE --tail=100 || echo "Unable to get logs"
+        fi
