@@ -34,7 +34,7 @@ ENV PYTHONUNBUFFERED=1 \
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 # Copy application code
-COPY server.py google_ads_client.py health.py config.py ./
+COPY server.py google_ads_client.py health.py config.py monitoring.py ./
 COPY .env.example ./.env.example
 COPY scripts ./scripts
 COPY test_*.py ./

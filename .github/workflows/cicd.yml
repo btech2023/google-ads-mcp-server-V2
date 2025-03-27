@@ -162,7 +162,7 @@ jobs:
           kustomize build . | kubectl apply --validate=false -f -
           
           # Apply monitoring configurations
-          kubectl apply -f ../../gcp-monitoring-config.yaml
+          kubectl apply -f ../../../kubernetes/overlays/dev/gcp-monitoring-config.yaml
           
       - name: Set up Cloud Operations
         run: |
