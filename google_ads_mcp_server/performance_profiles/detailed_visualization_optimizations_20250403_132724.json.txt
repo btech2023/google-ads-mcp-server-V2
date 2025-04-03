@@ -1,0 +1,135 @@
+===== format_account_dashboard =====
+
+--- Run 1 ---
+Execution time: 0.0406 seconds
+Profile statistics:
+         7929 function calls (7899 primitive calls) in 0.041 seconds
+
+   Ordered by: cumulative time
+   List reduced from 398 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.040    0.040 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:17(format_account_dashboard_data)
+        1    0.000    0.000    0.039    0.039 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:78(_calculate_campaign_statistics)
+        6    0.000    0.000    0.038    0.006 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3834(_ureduce)
+        2    0.000    0.000    0.031    0.016 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3916(median)
+        2    0.000    0.000    0.031    0.016 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4005(_median)
+        1    0.000    0.000    0.031    0.031 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_utils_impl.py:643(_median_nancheck)
+        1    0.000    0.000    0.031    0.031 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\__init__.py:339(__getattr__)
+      3/1    0.000    0.000    0.031    0.031 <frozen importlib._bootstrap>:1349(_find_and_load)
+      3/1    0.000    0.000    0.031    0.031 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+      3/1    0.000    0.000    0.028    0.028 <frozen importlib._bootstrap>:911(_load_unlocked)
+      3/1    0.000    0.000    0.028    0.028 <frozen importlib._bootstrap_external>:1020(exec_module)
+      8/2    0.000    0.000    0.023    0.012 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+      3/1    0.000    0.000    0.023    0.023 {built-in method builtins.exec}
+        1    0.000    0.000    0.023    0.023 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\ma\__init__.py:1(<module>)
+      8/2    0.000    0.000    0.023    0.012 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+        2    0.000    0.000    0.023    0.012 {built-in method builtins.__import__}
+        3    0.000    0.000    0.014    0.005 <frozen importlib._bootstrap_external>:1093(get_code)
+        3    0.000    0.000    0.012    0.004 <frozen importlib._bootstrap_external>:1214(get_data)
+        3    0.010    0.003    0.010    0.003 {built-in method _io.open_code}
+        1    0.001    0.001    0.009    0.009 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\ma\core.py:1(<module>)
+        4    0.000    0.000    0.007    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4067(percentile)
+        4    0.000    0.000    0.006    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4541(_quantile_unchecked)
+        4    0.000    0.000    0.006    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4697(_quantile_ureduce_func)
+        4    0.000    0.000    0.006    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4771(_quantile)
+        3    0.000    0.000    0.005    0.002 <frozen importlib._bootstrap>:1240(_find_spec)
+        3    0.000    0.000    0.005    0.002 <frozen importlib._bootstrap_external>:1551(find_spec)
+        3    0.000    0.000    0.005    0.002 <frozen importlib._bootstrap_external>:1522(_get_spec)
+       13    0.000    0.000    0.004    0.000 <frozen importlib._bootstrap_external>:145(_path_stat)
+        3    0.000    0.000    0.004    0.001 <frozen importlib._bootstrap_external>:1624(find_spec)
+       13    0.004    0.000    0.004    0.000 {built-in method nt.stat}
+
+
+
+
+===== format_account_dashboard_run_2 =====
+
+--- Run 1 ---
+Execution time: 0.0025 seconds
+Profile statistics:
+         685 function calls in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 125 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.002    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:17(format_account_dashboard_data)
+        1    0.000    0.000    0.001    0.001 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:78(_calculate_campaign_statistics)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1509(info)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4067(percentile)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1640(_log)
+        6    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3834(_ureduce)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4541(_quantile_unchecked)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4697(_quantile_ureduce_func)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4771(_quantile)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1666(handle)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1720(callHandlers)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1010(handle)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1138(emit)
+        2    0.000    0.000    0.000    0.000 {method 'write' of '_io.TextIOWrapper' objects}
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4736(_get_indexes)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3916(median)
+       29    0.000    0.000    0.000    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4005(_median)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1625(makeRecord)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:298(__init__)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:145(unique)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4639(_lerp)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1591(findCaller)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:987(format)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:69(_wrapreduction)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:698(format)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:339(_unique1d)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:3190(min)
+       13    0.000    0.000    0.000    0.000 {method 'any' of 'numpy.generic' objects}
+       14    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\numerictypes.py:471(issubdtype)
+
+
+
+
+===== format_account_dashboard_run_3 =====
+
+--- Run 1 ---
+Execution time: 0.0017 seconds
+Profile statistics:
+         685 function calls in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 125 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.002    0.002 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:17(format_account_dashboard_data)
+        1    0.000    0.000    0.001    0.001 C:\Users\bjorn.hansen\Documents\google-ads-mcp\google_ads_mcp_server\google_ads\dashboard_utils.py:78(_calculate_campaign_statistics)
+        6    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3834(_ureduce)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1509(info)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4067(percentile)
+        2    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1640(_log)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4541(_quantile_unchecked)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4697(_quantile_ureduce_func)
+        4    0.000    0.000    0.001    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4771(_quantile)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1666(handle)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1720(callHandlers)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1010(handle)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1138(emit)
+        2    0.000    0.000    0.000    0.000 {method 'write' of '_io.TextIOWrapper' objects}
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:3916(median)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4736(_get_indexes)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1625(makeRecord)
+       29    0.000    0.000    0.000    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4005(_median)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:298(__init__)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:69(_wrapreduction)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\fromnumeric.py:3190(min)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:145(unique)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_function_base_impl.py:4639(_lerp)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:987(format)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:698(format)
+        2    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py:1591(findCaller)
+        4    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:339(_unique1d)
+       14    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\Documents\google-ads-mcp\.venv\Lib\site-packages\numpy\_core\numerictypes.py:471(issubdtype)
+       13    0.000    0.000    0.000    0.000 {method 'any' of 'numpy.generic' objects}
+
+
+
+

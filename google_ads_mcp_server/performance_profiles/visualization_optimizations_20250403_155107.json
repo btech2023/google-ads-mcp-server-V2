@@ -1,0 +1,35 @@
+{
+  "format_account_dashboard": [
+    {
+      "function_name": "format_account_dashboard_data",
+      "execution_time": 0.019722700119018555,
+      "memory_usage": 0,
+      "success": false,
+      "timestamp": "2025-04-03T15:51:07.378352",
+      "args": "({'customer_id': '7788990011', 'date_range': {'start_date': '2025-05-01', 'end_date': '2025-05-30'}, 'total_impressions': 100000, 'total_clicks': 5000, 'total_cost': 5000.0, 'total_conversions': 250, 'total_conversion_value': 12500.0, 'ctr': 5.0, 'cpc': 1.0, 'conversion_rate': 5.0, 'cost_per_conversion': 20.0}, [{'id': '1', 'name': 'Campaign 1', 'status': 'ENABLED', 'channel_type': 'SEARCH', 'impressions': 30000, 'clicks': 1500, 'cost': 1500.0, 'conversions': 75}, {'id': '2', 'name': 'Campaign 2', 'status': 'ENABLED', 'channel_type': 'DISPLAY', 'impressions': 25000, 'clicks': 1250, 'cost': 1250.0, 'conversions': 60}])",
+      "kwargs": "{}"
+    }
+  ],
+  "format_account_dashboard_run_2": [
+    {
+      "function_name": "format_account_dashboard_data",
+      "execution_time": 0.0011725425720214844,
+      "memory_usage": 0,
+      "success": false,
+      "timestamp": "2025-04-03T15:51:07.380781",
+      "args": "({'customer_id': '7788990011', 'date_range': {'start_date': '2025-05-01', 'end_date': '2025-05-30'}, 'total_impressions': 100000, 'total_clicks': 5000, 'total_cost': 5000.0, 'total_conversions': 250, 'total_conversion_value': 12500.0, 'ctr': 5.0, 'cpc': 1.0, 'conversion_rate': 5.0, 'cost_per_conversion': 20.0}, [{'id': '1', 'name': 'Campaign 1', 'status': 'ENABLED', 'channel_type': 'SEARCH', 'impressions': 30000, 'clicks': 1500, 'cost': 1500.0, 'conversions': 75}, {'id': '2', 'name': 'Campaign 2', 'status': 'ENABLED', 'channel_type': 'DISPLAY', 'impressions': 25000, 'clicks': 1250, 'cost': 1250.0, 'conversions': 60}])",
+      "kwargs": "{}"
+    }
+  ],
+  "format_account_dashboard_run_3": [
+    {
+      "function_name": "format_account_dashboard_data",
+      "execution_time": 0.0009634494781494141,
+      "memory_usage": 0,
+      "success": false,
+      "timestamp": "2025-04-03T15:51:07.382541",
+      "args": "({'customer_id': '7788990011', 'date_range': {'start_date': '2025-05-01', 'end_date': '2025-05-30'}, 'total_impressions': 100000, 'total_clicks': 5000, 'total_cost': 5000.0, 'total_conversions': 250, 'total_conversion_value': 12500.0, 'ctr': 5.0, 'cpc': 1.0, 'conversion_rate': 5.0, 'cost_per_conversion': 20.0}, [{'id': '1', 'name': 'Campaign 1', 'status': 'ENABLED', 'channel_type': 'SEARCH', 'impressions': 30000, 'clicks': 1500, 'cost': 1500.0, 'conversions': 75}, {'id': '2', 'name': 'Campaign 2', 'status': 'ENABLED', 'channel_type': 'DISPLAY', 'impressions': 25000, 'clicks': 1250, 'cost': 1250.0, 'conversions': 60}])",
+      "kwargs": "{}"
+    }
+  ]
+}

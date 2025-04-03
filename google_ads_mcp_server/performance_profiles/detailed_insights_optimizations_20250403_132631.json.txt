@@ -1,0 +1,288 @@
+===== generate_optimization_suggestions =====
+
+--- Run 1 ---
+Execution time: 0.0009 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== generate_optimization_suggestions_run_2 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== generate_optimization_suggestions_run_3 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== detect_performance_anomalies =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== detect_performance_anomalies_run_2 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== detect_performance_anomalies_run_3 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== discover_opportunities =====
+
+--- Run 1 ---
+Execution time: 0.0001 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== discover_opportunities_run_2 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+
+===== discover_opportunities_run_3 =====
+
+--- Run 1 ---
+Execution time: 0.0002 seconds
+Profile statistics:
+         45 function calls in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1162(__call__)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1173(_increment_mock_call)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2307(_execute_mock_call)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2565(__new__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:797(__setattr__)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
+        5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
+        3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
+
+
+
+

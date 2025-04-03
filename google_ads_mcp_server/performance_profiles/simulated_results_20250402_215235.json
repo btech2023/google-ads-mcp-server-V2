@@ -1,0 +1,554 @@
+[
+  {
+    "name": "budget_service_get_budgets",
+    "category": "budget",
+    "execution_time": 1.0280423921613926,
+    "memory_usage": 63.52455967337629,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:28.982110"
+  },
+  {
+    "name": "budget_service_get_budgets",
+    "category": "budget",
+    "execution_time": 1.4858055105236305,
+    "memory_usage": 87.06502585856238,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.082818"
+  },
+  {
+    "name": "budget_service_get_budgets",
+    "category": "budget",
+    "execution_time": 1.7492654247750044,
+    "memory_usage": 57.84643868128535,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.183303"
+  },
+  {
+    "name": "budget_service_analyze_budget_performance",
+    "category": "budget",
+    "execution_time": 3.249521325689157,
+    "memory_usage": 65.74508859055027,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.283693"
+  },
+  {
+    "name": "budget_service_analyze_budget_performance",
+    "category": "budget",
+    "execution_time": 0.8881072387622668,
+    "memory_usage": 93.30289336550585,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.372918"
+  },
+  {
+    "name": "budget_service_analyze_budget_performance",
+    "category": "budget",
+    "execution_time": 3.080949961596474,
+    "memory_usage": 20.622185458901946,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.473604"
+  },
+  {
+    "name": "get_budgets_json",
+    "category": "budget",
+    "execution_time": 0.9957974156341685,
+    "memory_usage": 27.361370429230625,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.573519"
+  },
+  {
+    "name": "get_budgets_json",
+    "category": "budget",
+    "execution_time": 1.1645595767525188,
+    "memory_usage": 81.28689301290474,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.674156"
+  },
+  {
+    "name": "get_budgets_json",
+    "category": "budget",
+    "execution_time": 2.4930622277058196,
+    "memory_usage": 14.126039320939586,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.774660"
+  },
+  {
+    "name": "analyze_budgets",
+    "category": "budget",
+    "execution_time": 2.20206913775311,
+    "memory_usage": 73.64063145933797,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.874949"
+  },
+  {
+    "name": "analyze_budgets",
+    "category": "budget",
+    "execution_time": 1.4878189912277233,
+    "memory_usage": 63.19505917233648,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:29.975543"
+  },
+  {
+    "name": "analyze_budgets",
+    "category": "budget",
+    "execution_time": 3.4938967333022233,
+    "memory_usage": 66.07806361466828,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.075894"
+  },
+  {
+    "name": "ad_group_service_get_ad_groups",
+    "category": "ad_group",
+    "execution_time": 1.236137248456556,
+    "memory_usage": 21.775700157539326,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.176332"
+  },
+  {
+    "name": "ad_group_service_get_ad_groups",
+    "category": "ad_group",
+    "execution_time": 0.5950371118162776,
+    "memory_usage": 18.391946765683315,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.236250"
+  },
+  {
+    "name": "ad_group_service_get_ad_groups",
+    "category": "ad_group",
+    "execution_time": 0.6222961318956196,
+    "memory_usage": 17.54342337371753,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.298934"
+  },
+  {
+    "name": "ad_group_service_get_ad_group_performance",
+    "category": "ad_group",
+    "execution_time": 2.377828390277345,
+    "memory_usage": 60.44849183748471,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.399505"
+  },
+  {
+    "name": "ad_group_service_get_ad_group_performance",
+    "category": "ad_group",
+    "execution_time": 1.39859205030462,
+    "memory_usage": 21.08373969737984,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.500137"
+  },
+  {
+    "name": "ad_group_service_get_ad_group_performance",
+    "category": "ad_group",
+    "execution_time": 2.3247921457344494,
+    "memory_usage": 35.11418805786734,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.600456"
+  },
+  {
+    "name": "get_ad_groups_json",
+    "category": "ad_group",
+    "execution_time": 1.6730819250111413,
+    "memory_usage": 63.75619410792196,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.701097"
+  },
+  {
+    "name": "get_ad_groups_json",
+    "category": "ad_group",
+    "execution_time": 1.5412345892030066,
+    "memory_usage": 30.649685942474864,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.801542"
+  },
+  {
+    "name": "get_ad_groups_json",
+    "category": "ad_group",
+    "execution_time": 2.1371565445115754,
+    "memory_usage": 51.5344820993836,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:30.901806"
+  },
+  {
+    "name": "keyword_service_get_keywords",
+    "category": "keyword",
+    "execution_time": 1.203693428335633,
+    "memory_usage": 66.75989100109467,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.002083"
+  },
+  {
+    "name": "keyword_service_get_keywords",
+    "category": "keyword",
+    "execution_time": 1.4146458653750549,
+    "memory_usage": 39.08141083134524,
+    "success": false,
+    "timestamp": "2025-04-02T21:52:31.102313"
+  },
+  {
+    "name": "keyword_service_get_keywords",
+    "category": "keyword",
+    "execution_time": 2.532598157418374,
+    "memory_usage": 19.388697856565546,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.202581"
+  },
+  {
+    "name": "get_keywords_json",
+    "category": "keyword",
+    "execution_time": 1.5083141067306556,
+    "memory_usage": 38.844937043157,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.303450"
+  },
+  {
+    "name": "get_keywords_json",
+    "category": "keyword",
+    "execution_time": 1.0327860798627402,
+    "memory_usage": 32.79378792193144,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.403823"
+  },
+  {
+    "name": "get_keywords_json",
+    "category": "keyword",
+    "execution_time": 1.512274998256086,
+    "memory_usage": 86.47321739088663,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.504211"
+  },
+  {
+    "name": "search_term_service_get_search_terms_report",
+    "category": "keyword",
+    "execution_time": 3.8705901788912316,
+    "memory_usage": 37.74740281865604,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.604611"
+  },
+  {
+    "name": "search_term_service_get_search_terms_report",
+    "category": "keyword",
+    "execution_time": 2.6730916933011297,
+    "memory_usage": 27.880155483373844,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.705260"
+  },
+  {
+    "name": "search_term_service_get_search_terms_report",
+    "category": "keyword",
+    "execution_time": 2.5653551965869235,
+    "memory_usage": 23.334281598006616,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.805777"
+  },
+  {
+    "name": "search_term_service_analyze_search_terms",
+    "category": "keyword",
+    "execution_time": 2.049473292130189,
+    "memory_usage": 56.154480181426486,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:31.906075"
+  },
+  {
+    "name": "search_term_service_analyze_search_terms",
+    "category": "keyword",
+    "execution_time": 3.3320436569911456,
+    "memory_usage": 94.78169282983995,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.006646"
+  },
+  {
+    "name": "search_term_service_analyze_search_terms",
+    "category": "keyword",
+    "execution_time": 2.3337305945600186,
+    "memory_usage": 11.987128063331676,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.106962"
+  },
+  {
+    "name": "dashboard_service_get_account_dashboard",
+    "category": "dashboard",
+    "execution_time": 3.8948949012040046,
+    "memory_usage": 93.42050834106566,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.207293"
+  },
+  {
+    "name": "dashboard_service_get_account_dashboard",
+    "category": "dashboard",
+    "execution_time": 4.720890277843122,
+    "memory_usage": 29.691744062539335,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.307778"
+  },
+  {
+    "name": "dashboard_service_get_account_dashboard",
+    "category": "dashboard",
+    "execution_time": 4.089500610904124,
+    "memory_usage": 22.818306880824125,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.408410"
+  },
+  {
+    "name": "dashboard_service_get_campaign_dashboard",
+    "category": "dashboard",
+    "execution_time": 3.7166458378537097,
+    "memory_usage": 28.437051322455147,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.508896"
+  },
+  {
+    "name": "dashboard_service_get_campaign_dashboard",
+    "category": "dashboard",
+    "execution_time": 1.721491402011369,
+    "memory_usage": 78.33917580457226,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.609251"
+  },
+  {
+    "name": "dashboard_service_get_campaign_dashboard",
+    "category": "dashboard",
+    "execution_time": 1.565863135224546,
+    "memory_usage": 24.789941784109793,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.709592"
+  },
+  {
+    "name": "get_account_dashboard_json",
+    "category": "dashboard",
+    "execution_time": 1.7594528753757337,
+    "memory_usage": 90.10949159383067,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.809860"
+  },
+  {
+    "name": "get_account_dashboard_json",
+    "category": "dashboard",
+    "execution_time": 4.256772399072407,
+    "memory_usage": 41.96748995848414,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:32.910184"
+  },
+  {
+    "name": "get_account_dashboard_json",
+    "category": "dashboard",
+    "execution_time": 2.761202039614849,
+    "memory_usage": 26.454674547226137,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.010530"
+  },
+  {
+    "name": "insights_service_detect_performance_anomalies",
+    "category": "insights",
+    "execution_time": 3.9149788385960553,
+    "memory_usage": 61.56445326445837,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.111161"
+  },
+  {
+    "name": "insights_service_detect_performance_anomalies",
+    "category": "insights",
+    "execution_time": 4.557297477611057,
+    "memory_usage": 83.51546905551433,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.211745"
+  },
+  {
+    "name": "insights_service_detect_performance_anomalies",
+    "category": "insights",
+    "execution_time": 3.9317035912981435,
+    "memory_usage": 55.29159142529709,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.312112"
+  },
+  {
+    "name": "insights_service_generate_optimization_suggestions",
+    "category": "insights",
+    "execution_time": 5.2039829975826795,
+    "memory_usage": 58.12456485831183,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.412671"
+  },
+  {
+    "name": "insights_service_generate_optimization_suggestions",
+    "category": "insights",
+    "execution_time": 5.401010443338416,
+    "memory_usage": 99.84352026627298,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.512956"
+  },
+  {
+    "name": "insights_service_generate_optimization_suggestions",
+    "category": "insights",
+    "execution_time": 5.2953791797583945,
+    "memory_usage": 11.440683494154305,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.613104"
+  },
+  {
+    "name": "insights_service_discover_opportunities",
+    "category": "insights",
+    "execution_time": 3.499345567911066,
+    "memory_usage": 11.497607099104453,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.713559"
+  },
+  {
+    "name": "insights_service_discover_opportunities",
+    "category": "insights",
+    "execution_time": 5.806678281083971,
+    "memory_usage": 79.85769086468017,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.814133"
+  },
+  {
+    "name": "insights_service_discover_opportunities",
+    "category": "insights",
+    "execution_time": 5.864370001412227,
+    "memory_usage": 92.13829390218854,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:33.914626"
+  },
+  {
+    "name": "get_performance_anomalies_json",
+    "category": "insights",
+    "execution_time": 2.6999329912211425,
+    "memory_usage": 40.84529439649105,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.014952"
+  },
+  {
+    "name": "get_performance_anomalies_json",
+    "category": "insights",
+    "execution_time": 4.042585280082305,
+    "memory_usage": 52.44516557131703,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.115575"
+  },
+  {
+    "name": "get_performance_anomalies_json",
+    "category": "insights",
+    "execution_time": 6.909292085550797,
+    "memory_usage": 85.77700483456525,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.215726"
+  },
+  {
+    "name": "complex_dashboard_with_visualization",
+    "category": "visualization",
+    "execution_time": 2.8936479179194983,
+    "memory_usage": 36.29905821714983,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.316151"
+  },
+  {
+    "name": "complex_dashboard_with_visualization",
+    "category": "visualization",
+    "execution_time": 3.717175207729234,
+    "memory_usage": 21.82048599801219,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.416823"
+  },
+  {
+    "name": "complex_dashboard_with_visualization",
+    "category": "visualization",
+    "execution_time": 5.403706122800822,
+    "memory_usage": 24.40177989136338,
+    "success": false,
+    "timestamp": "2025-04-02T21:52:34.517130"
+  },
+  {
+    "name": "complex_insights_with_visualization",
+    "category": "visualization",
+    "execution_time": 3.0618443578452057,
+    "memory_usage": 15.907900568661912,
+    "success": false,
+    "timestamp": "2025-04-02T21:52:34.617789"
+  },
+  {
+    "name": "complex_insights_with_visualization",
+    "category": "visualization",
+    "execution_time": 7.093533710209806,
+    "memory_usage": 20.066503308886855,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.718223"
+  },
+  {
+    "name": "complex_insights_with_visualization",
+    "category": "visualization",
+    "execution_time": 5.235406878770231,
+    "memory_usage": 41.612427275394396,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.818638"
+  },
+  {
+    "name": "budget_analysis_with_visualization",
+    "category": "visualization",
+    "execution_time": 2.489610015176331,
+    "memory_usage": 42.797959648732174,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:34.919024"
+  },
+  {
+    "name": "budget_analysis_with_visualization",
+    "category": "visualization",
+    "execution_time": 3.853002151706682,
+    "memory_usage": 90.37656270306071,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.019557"
+  },
+  {
+    "name": "budget_analysis_with_visualization",
+    "category": "visualization",
+    "execution_time": 3.367863666737316,
+    "memory_usage": 63.179589129894815,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.119671"
+  },
+  {
+    "name": "create_comparison_bar_chart",
+    "category": "visualization",
+    "execution_time": 2.168752991773779,
+    "memory_usage": 47.58089643935276,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.220287"
+  },
+  {
+    "name": "create_comparison_bar_chart",
+    "category": "visualization",
+    "execution_time": 3.2759073575149253,
+    "memory_usage": 74.87730250505703,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.320708"
+  },
+  {
+    "name": "create_comparison_bar_chart",
+    "category": "visualization",
+    "execution_time": 2.3473872334585124,
+    "memory_usage": 91.92728858141216,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.421362"
+  },
+  {
+    "name": "create_breakdown_visualization",
+    "category": "visualization",
+    "execution_time": 3.7132465226030993,
+    "memory_usage": 32.0415793350535,
+    "success": true,
+    "timestamp": "2025-04-02T21:52:35.521868"
+  },
+  {
+    "name": "create_breakdown_visualization",
+    "category": "visualization",
+    "execution_time": 3.5999518562320767,
+    "memory_usage": 93.64350690476337,
+    "success": false,
+    "timestamp": "2025-04-02T21:52:35.622240"
+  },
+  {
+    "name": "create_breakdown_visualization",
+    "category": "visualization",
+    "execution_time": 2.3688044162050925,
+    "memory_usage": 75.03482795274863,
+    "success": false,
+    "timestamp": "2025-04-02T21:52:35.722369"
+  }
+]

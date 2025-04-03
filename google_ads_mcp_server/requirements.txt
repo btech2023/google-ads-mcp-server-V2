@@ -1,0 +1,40 @@
+# Google Ads MCP Server Dependencies
+
+# Core dependencies
+# Install MCP directly from GitHub using modern PEP 508 format
+mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git
+google-ads>=21.3.0
+python-dotenv>=1.0.0
+fastapi>=0.103.1
+uvicorn>=0.23.2
+
+# Async support
+asyncio>=3.4.3
+httpx>=0.24.1
+
+# Database
+# SQLite is part of the Python standard library
+# PostgreSQL support (optional, install with: pip install -r requirements.txt[postgres])
+asyncpg>=0.28.0; extra == 'postgres'
+alembic>=1.12.0; extra == 'postgres'  # For database migrations
+
+# Utilities
+pydantic>=2.0.0
+python-json-logger>=2.0.7
+numpy>=1.21.0  # Added for numerical operations in insights service
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+
+# Monitoring and Observability
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-otlp>=1.21.0
+opentelemetry-instrumentation-fastapi>=0.42b0
+opentelemetry-instrumentation-httpx>=0.42b0
+prometheus-client>=0.17.1
+prometheus-fastapi-instrumentator>=6.1.0
+structlog>=23.1.0
+psutil>=5.9.0 
