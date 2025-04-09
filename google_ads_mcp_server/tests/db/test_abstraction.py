@@ -10,10 +10,13 @@ import tempfile
 import unittest
 import json
 from datetime import datetime, timedelta
+import asyncio
+from unittest.mock import patch, MagicMock
 
-from db.interface import DatabaseInterface
-from db.factory import get_database_manager
-from db.sqlite_manager import SQLiteDatabaseManager
+from google_ads_mcp_server.db.interface import DatabaseInterface
+from google_ads_mcp_server.db.factory import get_database_manager
+from google_ads_mcp_server.db.sqlite_manager import SQLiteDatabaseManager
+from google_ads_mcp_server.db.models import CacheEntry
 
 
 class TestDatabaseAbstraction(unittest.TestCase):

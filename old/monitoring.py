@@ -174,11 +174,6 @@ def _init_prometheus(app):
             metric_name="google_ads_mcp_http_requests_total"
         )
     )
-    instrumentator.add(
-        prom_metrics.requests_in_progress(
-            metric_name="google_ads_mcp_http_requests_in_progress"
-        )
-    )
     
     # Instrument app and expose metrics endpoint
     instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)

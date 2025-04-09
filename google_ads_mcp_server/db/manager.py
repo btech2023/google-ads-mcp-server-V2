@@ -13,16 +13,309 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple, Union
+import aiosqlite
 
 from .schema import (
     ALL_TABLES,
     ALL_INDEXES,
     CLEAN_EXPIRED_CACHE,
     GET_CACHE_STATS,
-    CACHE_TABLES
+    CACHE_TABLES,
+    SCHEMA_VERSION,
+    CREATE_SCHEMA_VERSION_TABLE,
+    GET_SCHEMA_VERSION,
+    INSERT_SCHEMA_VERSION,
+    UPDATE_SCHEMA_VERSION
 )
+from .interface import DatabaseInterface
 
 logger = logging.getLogger(__name__)
+
+class SQLiteDatabaseManager(DatabaseInterface):
+    """Manages SQLite database interactions for caching and configuration."""
+    
+    def __init__(self, db_path: str = "google_ads_mcp_cache.db"):
+        """Initialize the DatabaseManager."""
+        self.db_path = db_path
+        # Ensure the directory for the database exists
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+            logger.info(f"Created database directory: {db_dir}")
+        logger.info(f"SQLiteDatabaseManager initialized with db path: {self.db_path}")
+
+    async def initialize_db(self):
+        """Initialize the database by creating tables and indexes if they don't exist."""
+        logger.info(f"Initializing database schema (version {SCHEMA_VERSION})...")
+        async with aiosqlite.connect(self.db_path) as db:
+            # Enable Write-Ahead Logging for better concurrency
+            await db.execute("PRAGMA journal_mode=WAL;")
+            
+            # Create schema version table first
+            await db.execute(CREATE_SCHEMA_VERSION_TABLE)
+            await db.commit()
+            
+            # Check current schema version
+            current_version = 0
+            try:
+                async with db.execute(GET_SCHEMA_VERSION) as cursor:
+                    row = await cursor.fetchone()
+                    if row:
+                        current_version = row[0]
+            except aiosqlite.OperationalError as e:
+                logger.warning(f"Could not get schema version, assuming version 0. Error: {e}")
+
+            logger.info(f"Current DB schema version: {current_version}. Required version: {SCHEMA_VERSION}")
+            
+            if current_version < SCHEMA_VERSION:
+                logger.info("Schema outdated or not initialized. Creating tables and indexes...")
+                # Create all tables
+                for table_sql in ALL_TABLES:
+                    try:
+                        await db.execute(table_sql)
+                    except aiosqlite.OperationalError as e:
+                        logger.error(f"Error creating table with SQL: {table_sql}\nError: {e}")
+                        raise # Re-raise critical error
+                
+                # Create all indexes
+                for index_sql in ALL_INDEXES:
+                    try:
+                        await db.execute(index_sql)
+                    except aiosqlite.OperationalError as e:
+                        # Log index creation errors but don't necessarily fail initialization
+                        logger.warning(f"Error creating index with SQL: {index_sql}\nError: {e}")
+                
+                # Update schema version
+                if current_version == 0:
+                    await db.execute(INSERT_SCHEMA_VERSION, (SCHEMA_VERSION,))
+                else:
+                    await db.execute(UPDATE_SCHEMA_VERSION, (SCHEMA_VERSION,))
+                
+                await db.commit()
+                logger.info(f"Database schema initialized/updated to version {SCHEMA_VERSION}.")
+            else:
+                logger.info("Database schema is up to date.")
+
+    async def store_api_response(self, cache_key: str, response_data: Any, ttl: int, metadata: Optional[Dict] = None):
+        """Store an API response in the cache."""
+        # Serialize response_data (assuming it's JSON-serializable for simplicity)
+        # For more complex data, consider pickle or another binary format
+        serialized_data = json.dumps(response_data).encode('utf-8')
+        serialized_metadata = json.dumps(metadata) if metadata else None
+        timestamp = datetime.utcnow()
+        
+        sql = """
+        INSERT OR REPLACE INTO api_response_cache 
+        (cache_key, response_data, timestamp, ttl, metadata) 
+        VALUES (?, ?, ?, ?, ?)
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(sql, (cache_key, serialized_data, timestamp, ttl, serialized_metadata))
+                await db.commit()
+            logger.debug(f"Stored cache entry for key: {cache_key}")
+        except Exception as e:
+            logger.error(f"Error storing cache entry for key {cache_key}: {e}")
+
+    async def get_api_response(self, cache_key: str) -> Optional[Any]:
+        """Retrieve an API response from the cache if it exists and is not expired."""
+        sql = """
+        SELECT response_data, timestamp, ttl 
+        FROM api_response_cache 
+        WHERE cache_key = ?
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                async with db.execute(sql, (cache_key,)) as cursor:
+                    row = await cursor.fetchone()
+            
+            if row:
+                serialized_data, timestamp_str, ttl = row
+                timestamp = datetime.fromisoformat(timestamp_str)
+                
+                # Check if expired
+                if datetime.utcnow() < timestamp + timedelta(seconds=ttl):
+                    # Deserialize data
+                    response_data = json.loads(serialized_data.decode('utf-8'))
+                    logger.debug(f"Cache hit for key: {cache_key}")
+                    return response_data
+                else:
+                    logger.debug(f"Cache expired for key: {cache_key}")
+                    # Optional: Delete expired entry here or rely on periodic cleanup
+                    # await self.delete_cache_entry(cache_key)
+                    return None
+            else:
+                logger.debug(f"Cache miss for key: {cache_key}")
+                return None
+        except Exception as e:
+            logger.error(f"Error retrieving cache entry for key {cache_key}: {e}")
+            return None
+            
+    async def delete_cache_entry(self, cache_key: str):
+        """Delete a specific entry from the cache."""
+        sql = "DELETE FROM api_response_cache WHERE cache_key = ?"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(sql, (cache_key,))
+                await db.commit()
+            logger.info(f"Deleted cache entry: {cache_key}")
+        except Exception as e:
+            logger.error(f"Error deleting cache entry {cache_key}: {e}")
+
+    async def clear_expired_cache(self):
+        """Remove all expired entries from the cache."""
+        sql = "DELETE FROM api_response_cache WHERE ? > datetime(timestamp, '+' || ttl || ' seconds')"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (datetime.utcnow(),))
+                await db.commit()
+                changes = cursor.rowcount
+            if changes > 0:
+                logger.info(f"Cleared {changes} expired cache entries.")
+            else:
+                logger.debug("No expired cache entries found to clear.")
+        except Exception as e:
+            logger.error(f"Error clearing expired cache: {e}")
+
+    async def clear_all_cache(self):
+        """Clear all entries from the cache table."""
+        sql = "DELETE FROM api_response_cache"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(sql)
+                await db.commit()
+            logger.warning("Cleared ALL entries from api_response_cache.")
+        except Exception as e:
+            logger.error(f"Error clearing all cache: {e}")
+
+    # --- User/Token Methods (To be implemented in Task 3.1.3) ---
+    async def get_token_data_by_hash(self, token_hash: str) -> Optional[Dict]:
+        """Retrieve token data and associated user_id based on the token's hash."""
+        sql = """
+        SELECT token_id, user_id, description, created_at, expires_at, last_used, status
+        FROM user_tokens 
+        WHERE token_hash = ?
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row # Return rows as dict-like objects
+                async with db.execute(sql, (token_hash,)) as cursor:
+                    row = await cursor.fetchone()
+            if row:
+                logger.debug(f"Found token data for hash: {token_hash[:4]}...{token_hash[-4:]}")
+                return dict(row) # Convert Row object to dict
+            else:
+                logger.debug(f"No token found for hash: {token_hash[:4]}...{token_hash[-4:]}")
+                return None
+        except Exception as e:
+            logger.error(f"Error retrieving token data by hash: {e}")
+            return None
+
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        """Retrieve user details based on user_id."""
+        sql = """
+        SELECT user_id, username, email, created_at, last_active, status
+        FROM users
+        WHERE user_id = ?
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(sql, (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+            if row:
+                 logger.debug(f"Found user data for user_id: {user_id}")
+                 return dict(row)
+            else:
+                 logger.debug(f"No user found for user_id: {user_id}")
+                 return None
+        except Exception as e:
+            logger.error(f"Error retrieving user data by id {user_id}: {e}")
+            return None
+        
+    async def create_user(self, username: str, email: Optional[str] = None, status: str = 'active') -> int:
+        """Create a new user and return their user_id."""
+        sql = """
+        INSERT INTO users (username, email, status, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (username, email, status))
+                await db.commit()
+                user_id = cursor.lastrowid
+                logger.info(f"Created user '{username}' with user_id: {user_id}")
+                return user_id
+        except aiosqlite.IntegrityError as e:
+             logger.error(f"Failed to create user '{username}'. Username or email might already exist. Error: {e}")
+             return -1
+        except Exception as e:
+            logger.error(f"Error creating user '{username}': {e}")
+            return -1 # Indicate failure
+
+    async def add_user_token(self, user_id: int, token_hash: str, description: Optional[str] = None, expires_at: Optional[datetime] = None, status: str = 'active') -> int:
+        """Add a new token (hashed) for a user and return the token_id."""
+        sql = """
+        INSERT INTO user_tokens (user_id, token_hash, description, expires_at, status, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        """
+        # Convert expires_at to ISO format string if provided
+        expires_at_str = expires_at.isoformat() if expires_at else None
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (user_id, token_hash, description, expires_at_str, status))
+                await db.commit()
+                token_id = cursor.lastrowid
+                logger.info(f"Added token (ID: {token_id}) for user_id: {user_id}")
+                return token_id
+        except aiosqlite.IntegrityError as e:
+            logger.error(f"Failed to add token for user {user_id}. Hash might already exist. Error: {e}")
+            return -1
+        except Exception as e:
+            logger.error(f"Error adding token for user {user_id}: {e}")
+            return -1 # Indicate failure
+
+    async def update_token_last_used(self, token_id: int):
+        """Update the last_used timestamp for a specific token."""
+        sql = "UPDATE user_tokens SET last_used = datetime('now') WHERE token_id = ?"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(sql, (token_id,))
+                await db.commit()
+            logger.debug(f"Updated last_used for token_id: {token_id}")
+        except Exception as e:
+            logger.error(f"Error updating last_used for token {token_id}: {e}")
+
+    async def delete_token(self, token_id: int):
+        """Revoke a specific token by setting its status to 'revoked'."""
+        # Prefer updating status over deletion for auditability
+        sql = "UPDATE user_tokens SET status = 'revoked', expires_at = datetime('now') WHERE token_id = ? AND status = 'active'"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (token_id,))
+                await db.commit()
+                if cursor.rowcount > 0:
+                    logger.info(f"Revoked token_id: {token_id}")
+                else:
+                    logger.warning(f"Attempted to revoke token_id: {token_id}, but it was not found or already revoked.")
+        except Exception as e:
+            logger.error(f"Error revoking token {token_id}: {e}")
+        
+    # --- User Account Access Methods (To be implemented later) ---
+    async def add_account_access(self, user_id: int, customer_id: str, access_level: str = 'read', granted_by: Optional[int] = None):
+        # Implementation needed
+        logger.warning("add_account_access not implemented")
+        pass
+        
+    async def get_user_accessible_accounts(self, user_id: int) -> List[Dict]:
+        # Implementation needed
+        logger.warning("get_user_accessible_accounts not implemented")
+        return []
+
+    async def check_account_access(self, user_id: int, customer_id: str, required_level: str = 'read') -> bool:
+        # Implementation needed
+        logger.warning("check_account_access not implemented")
+        return False
 
 class DatabaseManager:
     """

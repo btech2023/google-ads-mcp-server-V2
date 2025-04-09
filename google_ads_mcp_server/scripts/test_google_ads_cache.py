@@ -11,12 +11,16 @@ import os
 import sys
 import asyncio
 import time
+import logging
 from datetime import datetime, timedelta
+import unittest
+from unittest.mock import patch, MagicMock
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
+# Change to absolute import
+from google_ads_mcp_server.google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
 from db.manager import DatabaseManager
 
 async def test_get_campaigns_caching():

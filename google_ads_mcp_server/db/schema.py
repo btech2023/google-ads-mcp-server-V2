@@ -9,29 +9,18 @@ and other persistent data storage needs in the Google Ads MCP Server.
 
 # Cache table for storing API responses
 CREATE_API_CACHE_TABLE = """
-CREATE TABLE IF NOT EXISTS api_cache (
+CREATE TABLE IF NOT EXISTS api_response_cache (
     cache_key TEXT PRIMARY KEY,
-    customer_id TEXT NOT NULL,
-    query_type TEXT NOT NULL,
-    query_hash TEXT NOT NULL,
-    response_data TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
-    metadata TEXT
+    response_data BLOB NOT NULL,
+    timestamp DATETIME NOT NULL,
+    ttl INTEGER NOT NULL, -- Time To Live in seconds
+    metadata TEXT -- Store additional info like API endpoint, params as JSON
 );
 """
 
 # Create indexes for the api_cache table
-CREATE_API_CACHE_CUSTOMER_INDEX = """
-CREATE INDEX IF NOT EXISTS idx_api_cache_customer_id ON api_cache(customer_id);
-"""
-
-CREATE_API_CACHE_QUERY_TYPE_INDEX = """
-CREATE INDEX IF NOT EXISTS idx_api_cache_query_type ON api_cache(query_type);
-"""
-
-CREATE_API_CACHE_EXPIRY_INDEX = """
-CREATE INDEX IF NOT EXISTS idx_api_cache_expires_at ON api_cache(expires_at);
+CREATE_CACHE_INDEX = """
+CREATE INDEX IF NOT EXISTS idx_api_cache_timestamp ON api_response_cache(timestamp);
 """
 
 # Account KPI cache for dashboard and visualization data
@@ -172,21 +161,44 @@ CREATE INDEX IF NOT EXISTS idx_budget_cache_expires_at ON budget_cache(expires_a
 # User tables for multi-user support
 CREATE_USERS_TABLE = """
 CREATE TABLE IF NOT EXISTS users (
-    user_id TEXT PRIMARY KEY,
-    user_data TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE, -- Nullable as per requirement
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    last_active TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'active' -- 'active', 'inactive', 'suspended'
 );
+"""
+
+CREATE_USER_TOKENS_TABLE = """
+CREATE TABLE IF NOT EXISTS user_tokens (
+    token_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT UNIQUE NOT NULL, -- Store SHA-256 hash of the token
+    description TEXT, -- For administrative tracking
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP, -- Nullable for non-expiring tokens
+    last_used TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'revoked'
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
+"""
+
+CREATE_USER_TOKENS_HASH_INDEX = """
+CREATE INDEX IF NOT EXISTS idx_user_tokens_token_hash ON user_tokens(token_hash);
 """
 
 CREATE_USER_ACCOUNT_ACCESS_TABLE = """
 CREATE TABLE IF NOT EXISTS user_account_access (
-    user_id TEXT NOT NULL,
-    customer_id TEXT NOT NULL,
-    access_level TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, customer_id)
+    access_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    customer_id TEXT NOT NULL, -- Google Ads Customer ID
+    access_level TEXT NOT NULL DEFAULT 'read', -- 'read', 'write', 'admin'
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    granted_by INTEGER, -- Nullable user_id of the granting admin
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES users (user_id) ON DELETE SET NULL,
+    UNIQUE (user_id, customer_id) -- Ensure one access level per user per account
 );
 """
 
@@ -223,6 +235,14 @@ CREATE_USER_CONFIG_USER_INDEX = """
 CREATE INDEX IF NOT EXISTS idx_user_config_user_id ON user_config(user_id);
 """
 
+# Schema versioning table
+CREATE_SCHEMA_VERSION_TABLE = """
+CREATE TABLE IF NOT EXISTS schema_version (
+    id INTEGER PRIMARY KEY CHECK (id = 1), -- Ensure only one row
+    version INTEGER NOT NULL
+);
+"""
+
 # Collect all creation statements
 ALL_TABLES = [
     CREATE_API_CACHE_TABLE,
@@ -231,22 +251,17 @@ ALL_TABLES = [
     CREATE_KEYWORD_CACHE_TABLE,
     CREATE_SEARCH_TERM_CACHE_TABLE,
     CREATE_BUDGET_CACHE_TABLE,
-]
-
-CREATE_USER_TABLES_SQL = [
     CREATE_USERS_TABLE,
+    CREATE_USER_TOKENS_TABLE,
     CREATE_USER_ACCOUNT_ACCESS_TABLE,
-]
-
-CREATE_CONFIG_TABLES_SQL = [
     CREATE_SYSTEM_CONFIG_TABLE,
     CREATE_USER_CONFIG_TABLE,
+    CREATE_SCHEMA_VERSION_TABLE
 ]
 
 ALL_INDEXES = [
-    CREATE_API_CACHE_CUSTOMER_INDEX,
-    CREATE_API_CACHE_QUERY_TYPE_INDEX,
-    CREATE_API_CACHE_EXPIRY_INDEX,
+    CREATE_CACHE_INDEX,
+    CREATE_USER_TOKENS_HASH_INDEX,
     CREATE_ACCOUNT_KPI_CACHE_ACCOUNT_INDEX,
     CREATE_ACCOUNT_KPI_CACHE_DATE_INDEX,
     CREATE_ACCOUNT_KPI_CACHE_EXPIRY_INDEX,
@@ -276,7 +291,7 @@ DELETE FROM {table} WHERE expires_at < datetime('now', 'utc');
 # Query to get cache statistics
 GET_CACHE_STATS = """
 SELECT
-    (SELECT COUNT(*) FROM api_cache) AS api_cache_count,
+    (SELECT COUNT(*) FROM api_response_cache) AS api_cache_count,
     (SELECT COUNT(*) FROM account_kpi_cache) AS account_kpi_cache_count,
     (SELECT COUNT(*) FROM campaign_cache) AS campaign_cache_count,
     (SELECT COUNT(*) FROM keyword_cache) AS keyword_cache_count,
@@ -286,7 +301,7 @@ SELECT
 
 # Dictionary mapping entity types to their cache tables
 CACHE_TABLES = {
-    'api': 'api_cache',
+    'api': 'api_response_cache',
     'account_kpi': 'account_kpi_cache',
     'campaign': 'campaign_cache',
     'keyword': 'keyword_cache',

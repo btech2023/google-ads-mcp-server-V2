@@ -15,22 +15,21 @@ import sys
 import time
 import json
 import asyncio
-import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from unittest.mock import MagicMock, AsyncMock
+
+# Use absolute imports now that the package is installed
+from google_ads_mcp_server.google_ads.insights import InsightsService
+from google_ads_mcp_server.utils.performance_profiler import PerformanceProfiler, log_performance_summary
+from google_ads_mcp_server.utils.logging import configure_logging, get_logger
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("performance-test")
-
-# Import performance profiler
-from utils.performance_profiler import PerformanceProfiler
-from google_ads.insights import InsightsService
-from google_ads.dashboard_utils import format_account_dashboard_data
+configure_logging()
+logger = get_logger(__name__)
 
 # Import the shared mock client creator
 from tests.utils.mock_google_ads import create_mock_google_ads_client, DEFAULT_CUSTOMER_ID
@@ -160,46 +159,47 @@ async def test_visualization_optimizations(customer_id: str) -> Dict[str, Any]:
     # Create mock services using the shared utility
     google_ads_service = create_mock_google_ads_client()
     
-    # Initialize performance profiler
+    # Prepare mock data (simulate data returned from service calls)
+    mock_summary_data = google_ads_service.get_account_summary.return_value
+    mock_campaign_data = google_ads_service.get_campaigns.return_value
+    
+    # Use PerformanceProfiler to test the formatting function
     profiler = PerformanceProfiler(output_dir=OUTPUT_DIR)
     
-    # Set up test data
-    account_summary = google_ads_service.get_account_summary.return_value
-    campaign_data = google_ads_service.get_campaigns.return_value
-    
-    # Define tests for the visualization formatters
-    tests = [
+    # Define the test configuration for run_performance_suite
+    tests_to_run = [
         {
             'name': 'format_account_dashboard',
-            'type': 'function',
-            'target': format_account_dashboard_data,
-            'args': [account_summary, campaign_data],
-            'kwargs': {}
+            'type': 'function',  # Indicate it's a direct function call
+            'target': format_account_dashboard_data, # The function to profile
+            'args': [mock_summary_data, mock_campaign_data], # Positional arguments
+            'kwargs': {}, # Keyword arguments
+            'runs': TEST_RUNS # Number of times to run this specific test
         }
     ]
+
+    # Run the performance test using the profiler
+    # Note: run_performance_suite expects a list of test dicts
+    results = await profiler.run_performance_suite(tests_to_run)
     
-    # Run tests multiple times
-    all_tests = [] # Create a new list to store all tests
-    for test in tests:
-        all_tests.append(test) # Add the original test
-        # Create copies of the test for multiple runs
-        for i in range(TEST_RUNS - 1):
-            test_copy = test.copy()
-            test_copy['name'] = f"{test['name']}_run_{i+2}"
-            all_tests.append(test_copy) # Append copies to the new list
-    
-    # Run the performance tests using the complete list
-    logger.info(f"Running {len(all_tests)} visualization tests...")
-    results = await profiler.run_performance_suite(all_tests)
-    
-    # Analyze and save results
+    # Save results using a descriptive name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    profiler.save_results(results, f"visualization_optimizations_{timestamp}.json")
+    results_file = f"visualization_optimizations_{timestamp}.json"
+    # run_performance_suite returns the results, pass them to save_results
+    profiler.save_results(results, filename=results_file)
     
-    # Calculate improvement metrics
-    improvements = calculate_improvements(results, baseline_file="simulated_summary_20250402_215235.json")
+    # Retrieve the specific metric we recorded within the function (if needed)
+    # This might require adjusting how PerformanceProfiler stores custom metrics
+    # or parsing the detailed results file.
+    # For now, we rely on the overall timing captured by run_performance_suite.
     
-    return improvements
+    # Compare with baseline (optional, depends on having baseline data)
+    # baseline_file = os.path.join(OUTPUT_DIR, "baseline_visualization_summary.json")
+    # comparison = profiler.compare_with_baseline(baseline_file)
+    
+    logger.info("Visualization optimization tests completed.")
+    # Return the collected results (or comparison if implemented)
+    return results
 
 
 def calculate_improvements(current_results: Dict[str, List[Dict[str, Any]]], baseline_file: str) -> Dict[str, Any]:

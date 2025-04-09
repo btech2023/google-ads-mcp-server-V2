@@ -1,0 +1,280 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Google Ads MCP Server Project Organization Plan
+
+## 1. Project Planning Structure
+
+### Directory Structure
+```
+C:\Users\bjorn.hansen\Documents\google-ads-mcp\
+├── PROJECT-MASTER.md           # Overarching project plan (constant)
+├── project-planning\
+│   ├── implementation-plans\    # Specific implementation plans
+│   │   ├── SAGE-Plan.md         # Structured Approach for Google-ads Enhancement
+│   │   ├── PRISM-Plan.md        # Powerful Rendering & Interactive Structural Manifestation
+│   │   ├── NOVA-Plan.md         # Nimble Operational Visualization Application
+│   │   └── QUANTUM-Plan.md      # Current active implementation plan
+│   ├── status-reports\          # Regular status updates
+│   │   ├── STATUS-2025-03-15.md
+│   │   └── STATUS-2025-03-28.md
+│   └── roadmap\                 # Long-term planning
+│       └── ROADMAP-2025-Q2.md
+├── logs\
+│   ├── error-logs\              # Specific error documentation
+│   │   ├── ERROR-GA001-2025-03-18-GoogleAdsAuthFailure.md
+│   │   └── ERROR-MCP002-2025-03-20-MCPVersionIncompatibility.md
+│   ├── solution-logs\           # Solutions to specific problems
+│   │   ├── SOLUTION-GA001-2025-03-19-GoogleAdsAuthFix.md
+│   │   └── SOLUTION-MCP002-2025-03-21-MCPVersionUpdate.md
+│   └── change-logs\             # Automatically generated change logs
+│       ├── changes-2025-03-15.md
+│       └── changes-2025-03-28.md
+└── scripts\                    # Project utility scripts
+    ├── generate-changelog.ps1   # PowerShell script for change logging
+    └── analyze-codebase.ps1     # Code analysis script
+```
+
+### File Naming Conventions
+
+1. **Master Project Plan**: 
+   - `PROJECT-MASTER.md` - Capitalized to indicate its importance and permanent nature
+
+2. **Implementation Plans**:
+   - `[CODENAME]-Plan.md` - Each implementation plan gets a distinct codename
+   - Examples: SAGE, PRISM, NOVA, QUANTUM, etc.
+
+3. **Status Reports**:
+   - `STATUS-YYYY-MM-DD.md` - Date-based status reports
+
+4. **Error Logs**:
+   - `ERROR-[PREFIX][NUM]-YYYY-MM-DD-[ShortDescription].md`
+   - Prefixes: GA (Google Ads), MCP (Model Context Protocol), DB (Database), etc.
+
+5. **Solution Logs**:
+   - `SOLUTION-[PREFIX][NUM]-YYYY-MM-DD-[ShortDescription].md`
+   - Should reference the corresponding error log
+
+6. **Change Logs**:
+   - `changes-YYYY-MM-DD.md` - Automatically generated logs
+
+## 2. Project Plan Hierarchy
+
+### Master Project Plan (`PROJECT-MASTER.md`)
+- **Purpose**: Define the overall project goals, core requirements, and success criteria
+- **Characteristics**: 
+  - Remains stable throughout the project lifecycle
+  - High-level requirements and architecture
+  - Focus on "what" needs to be achieved, not "how"
+  - Major milestones and delivery dates
+  - Core technical constraints and dependencies
+  - Success criteria and acceptance conditions
+
+### Implementation Plans (`[CODENAME]-Plan.md`)
+- **Purpose**: Define specific phases of work with concrete tasks and timelines
+- **Characteristics**:
+  - Focused on a specific aspect or phase of the project
+  - Detailed task breakdowns
+  - Specific technical approaches
+  - Clear start and end criteria
+  - Resources required
+  - Dependencies on other implementation plans
+
+### Status Reports (`STATUS-YYYY-MM-DD.md`)
+- **Purpose**: Regular updates on project progress
+- **Characteristics**:
+  - Current implementation plan status
+  - Progress against the master plan
+  - Blockers and issues
+  - Next actions
+  - Changes to timeline or scope
+
+## 3. Logging Strategy
+
+### Error Logs
+- **Path**: `C:\Users\bjorn.hansen\Documents\google-ads-mcp\logs\error-logs\`
+- **Format**: `ERROR-[PREFIX][NUM]-YYYY-MM-DD-[ShortDescription].md`
+- **Content Structure**:
+  ```markdown
+  # [ERROR-ID] - [Short Description]
+  **Date:** YYYY-MM-DD
+
+  ## Context
+  [What we were doing when the error occurred]
+
+  ## Problem
+  [Detailed error description]
+
+  ## Error Details
+  - **Error Type:** [Classification of error]
+  - **Location:** [File/Module where error occurred]
+  - **Error Message:** [Exact error message]
+  - **Stack Trace:** [If available]
+
+  ## Root Causes
+  [Identified causes of the error]
+
+  ## References
+  - [Related documentation]
+  - [Similar past issues]
+  ```
+
+### Solution Logs
+- **Path**: `C:\Users\bjorn.hansen\Documents\google-ads-mcp\logs\solution-logs\`
+- **Format**: `SOLUTION-[PREFIX][NUM]-YYYY-MM-DD-[ShortDescription].md`
+- **Content Structure**:
+  ```markdown
+  # [SOLUTION-ID] - [Short Description]
+  **Date:** YYYY-MM-DD
+  **Resolves:** [ERROR-ID]
+
+  ## Solution Implemented
+  [Detailed description of the solution]
+
+  ## Verification Steps
+  [How the solution was tested/verified]
+
+  ## Prevention Measures
+  [Steps taken to prevent similar issues]
+
+  ## References
+  - [Related documentation]
+  - [Similar past issues]
+  ```
+
+### Change Logs
+- **Path**: `C:\Users\bjorn.hansen\Documents\google-ads-mcp\logs\change-logs\`
+- **Format**: `changes-YYYY-MM-DD.md`
+- **Generated by**: `generate-changelog.ps1` PowerShell script
+- **Content Structure**:
+  ```markdown
+  # Changes for YYYY-MM-DD
+
+  ## Files Modified
+  - [Filename]: [Summary of changes]
+
+  ## Files Added
+  - [Filename]: [Description]
+
+  ## Files Deleted
+  - [Filename]: [Reason]
+
+  ## Code Metrics
+  - Total lines added: [Number]
+  - Total lines removed: [Number]
+  - Files exceeding size threshold: [List]
+  ```
+
+## 4. Change Tracking Script Specification
+
+### PowerShell Script: `generate-changelog.ps1`
+
+**Purpose**: Automatically generate a change log by comparing the current state of the project with the previous state.
+
+**Functionality**:
+1. Compare current Git state with previous commit
+2. Identify modified, added, and deleted files
+3. Generate a summary of changes
+4. Check file sizes and flag files exceeding 300 lines
+5. Output a formatted change log
+
+**Usage**:
+```powershell
+.\scripts\generate-changelog.ps1 [-OutputPath <path>]
+```
+
+**Sample Implementation Guidance**:
+- Use `git diff` to identify changes
+- Use PowerShell's `Measure-Object` to count lines in files
+- Format output as Markdown
+- Save to specified location in logs\change-logs\
+
+## 5. Code Modularization Strategy
+
+### File Size Monitoring
+
+**Detection Mechanism**:
+- The `generate-changelog.ps1` script will identify files exceeding 300 lines
+- These files will be flagged in the change log output
+
+**Modularization Guidelines**:
+
+1. **Server Components**:
+   - Break down by functional area (authentication, caching, API integration)
+   - Use separate files for different API resources
+
+2. **Google Ads Client**:
+   - Separate core client from entity-specific implementations
+   - Create modules for different advertising entities (campaigns, ad groups, keywords)
+   - Move reporting functionality to dedicated modules
+
+3. **MCP Protocol Implementation**:
+   - Separate resource definitions from tool implementations
+   - Move request handlers to dedicated modules
+   - Create utility modules for common operations
+
+4. **Visualization Components**:
+   - Create separate modules for different visualization types
+   - Separate data processing from visualization formatting
+
+### Directory Structure for Modularization
+
+```
+src/
+├── google_ads/                 # Google Ads API client modules
+│   ├── client.py               # Core client functionality
+│   ├── campaigns.py            # Campaign-related functionality
+│   ├── ad_groups.py            # Ad group-related functionality
+│   └── reporting.py            # Reporting functionality
+├── mcp/                        # MCP server modules
+│   ├── resources.py            # Resource definitions
+│   ├── tools.py                # Tool implementations
+│   └── handlers.py             # Request handlers
+├── visualization/              # Visualization modules
+│   ├── time_series.py          # Time series visualization
+│   ├── comparison.py           # Comparison visualization
+│   └── dashboard.py            # Dashboard visualization
+└── utils/                      # Utility modules
+    ├── caching.py              # Caching utilities
+    ├── error_handling.py       # Error handling utilities
+    └── formatting.py           # Data formatting utilities
+```
+
+## 6. Windows Compatibility Guidelines
+
+### Command Execution
+- All scripts should use PowerShell or Command Prompt syntax
+- Avoid Unix/Linux specific commands (grep, awk, sed, etc.)
+- Use PowerShell equivalents (Select-String, ForEach-Object, etc.)
+
+### Path Conventions
+- Use Windows path separators (`\` instead of `/`)
+- Use full paths when necessary
+- Be mindful of path length limitations
+
+### PowerShell Script Headers
+- Include proper PowerShell version requirements
+- Set execution policy as needed
+- Use appropriate error handling
+
+## 7. Project Rules Enhancement
+
+The current project rules are strong but could benefit from these additions:
+
+1. **Versioning Policy**: Clear guidelines for versioning the MCP server and client components
+
+2. **Documentation Requirements**: Specific requirements for documenting new functionality
+
+3. **Testing Standards**: Clear guidelines for test coverage and types of tests required
+
+4. **Performance Criteria**: Specific performance targets for the MCP server
+
+5. **Security Guidelines**: Explicit security requirements for handling Google Ads API credentials
+
+6. **Code Style Guidelines**: Specific Python code style guidelines for consistency
+
+7. **Dependency Management**: Process for adding new dependencies to the project
+
+8. **Modularization Triggers**: Clear criteria for when to modularize code components

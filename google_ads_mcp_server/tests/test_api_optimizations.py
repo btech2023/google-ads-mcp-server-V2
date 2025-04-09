@@ -14,12 +14,14 @@ import json
 import logging
 from unittest import mock
 from typing import List, Dict, Any
+import asyncio
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
-from google_ads.batch_operations import BatchManager, OperationType
+from google_ads_mcp_server.google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
+from google_ads_mcp_server.google_ads.batch_operations import BatchManager, OperationType
+from google_ads_mcp_server.google_ads.campaigns import CampaignService
 from utils.performance_profiler import PerformanceProfiler
 
 # Configure logging

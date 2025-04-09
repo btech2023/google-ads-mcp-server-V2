@@ -9,11 +9,14 @@ import os
 import unittest
 import tempfile
 from unittest import mock
+import asyncio
+from unittest.mock import patch, MagicMock
 
-from google_ads.client import get_google_ads_client
-from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
-from db.interface import DatabaseInterface
-from db.sqlite_manager import SQLiteDatabaseManager
+from google_ads_mcp_server.google_ads.client import get_google_ads_client
+from google_ads_mcp_server.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
+from google_ads_mcp_server.db.interface import DatabaseInterface
+from google_ads_mcp_server.db.sqlite_manager import SQLiteDatabaseManager
+from google_ads_mcp_server.db.factory import get_database_manager
 
 
 class MockDatabaseManager(DatabaseInterface):
@@ -155,7 +158,7 @@ class TestClientWithDatabaseAbstraction(unittest.TestCase):
             
             try:
                 # Create a client with SQLite configuration
-                with mock.patch('google_ads.client.get_database_manager') as mock_get_db:
+                with mock.patch('google_ads_mcp_server.google_ads.client.get_database_manager') as mock_get_db:
                     # Set up the mock to return a SQLiteDatabaseManager
                     sqlite_manager = SQLiteDatabaseManager(db_path=temp_db.name)
                     mock_get_db.return_value = sqlite_manager
@@ -199,7 +202,7 @@ class TestClientWithDatabaseAbstraction(unittest.TestCase):
                 
                 try:
                     # Mock the database manager factory
-                    with mock.patch('google_ads.client_with_sqlite_cache.get_database_manager') as mock_get_db:
+                    with mock.patch('google_ads_mcp_server.client_with_sqlite_cache.get_database_manager') as mock_get_db:
                         # Set up the mock to return a SQLiteDatabaseManager
                         sqlite_manager = SQLiteDatabaseManager(db_path=temp_db.name)
                         mock_get_db.return_value = sqlite_manager
@@ -236,7 +239,7 @@ class TestClientWithDatabaseAbstraction(unittest.TestCase):
     def test_client_with_postgres_config(self):
         """Test client initialization with PostgreSQL configuration."""
         # Mock the database manager factory
-        with mock.patch('google_ads.client_with_sqlite_cache.get_database_manager') as mock_get_db:
+        with mock.patch('google_ads_mcp_server.client_with_sqlite_cache.get_database_manager') as mock_get_db:
             # Set up mock to return our mock database manager
             mock_db_manager = MockDatabaseManager()
             mock_get_db.return_value = mock_db_manager

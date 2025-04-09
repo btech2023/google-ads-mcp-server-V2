@@ -16,13 +16,13 @@ from datetime import datetime
 from typing import Dict, Any, List
 from unittest.mock import patch, MagicMock, AsyncMock
 
-# Set up logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger("cache-test")
+# Use absolute imports
+from google_ads_mcp_server.db.manager import DatabaseManager
+from google_ads_mcp_server.utils.logging import configure_logging, get_logger
+
+# Configure logging
+configure_logging()
+logger = get_logger(__name__)
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,7 +31,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tests.utils.mock_google_ads import create_mock_google_ads_client, DEFAULT_CUSTOMER_ID
 
 # Import modules to test
-from db.manager import DatabaseManager
 from db.interface import DatabaseInterface
 from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
 

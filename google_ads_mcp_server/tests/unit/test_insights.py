@@ -6,8 +6,9 @@ import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime, timedelta
 import json
+import asyncio
 
-from google_ads.insights import InsightsService
+from google_ads_mcp_server.google_ads.insights import InsightsService
 from visualization.insights import (
     format_anomalies_visualization,
     format_optimization_suggestions_visualization,

@@ -18,10 +18,28 @@ from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 
 from .client_base import GoogleAdsClient, GoogleAdsClientError
-from db.interface import DatabaseInterface
-from db.factory import get_database_manager
-from utils.api_tracker import APICallTracker
+from ..db.interface import DatabaseInterface
+from ..db.factory import get_database_manager
+from ..utils.api_tracker import APICallTracker
 from .batch_operations import BatchManager
+
+# Import utilities
+from ..utils.logging import get_logger
+from ..utils.validation import (
+    validate_customer_id,
+    validate_positive_integer,
+    validate_enum
+)
+from ..utils.error_handler import (
+    handle_exception,
+    handle_google_ads_exception,
+    CATEGORY_API_ERROR,
+    CATEGORY_CACHE,
+    CATEGORY_CONFIG,
+    SEVERITY_ERROR,
+    SEVERITY_WARNING
+)
+from ..utils.formatting import clean_customer_id, micros_to_currency
 
 try:
     # Import monitoring if available
@@ -36,6 +54,8 @@ except ImportError:
     def monitor_google_ads_api(endpoint): 
         def decorator(func): return func
         return decorator
+
+VALID_DB_TYPES = ["sqlite", "postgres"] # Defined here as well for __init__ validation
 
 class GoogleAdsServiceWithSQLiteCache(GoogleAdsClient):
     """Enhanced service for interacting with the Google Ads API with SQLite-based caching."""
@@ -63,45 +83,64 @@ class GoogleAdsServiceWithSQLiteCache(GoogleAdsClient):
         
         # Ensure logger exists (might be skipped by patched base init in tests)
         if not hasattr(self, 'logger'):
-            self.logger = logging.getLogger(self.__class__.__name__)
+            # Use get_logger
+            self.logger = get_logger(self.__class__.__name__)
             self.logger.warning("Base class did not initialize logger, initializing locally.")
             
         # Set up caching-specific attributes
         self.cache_enabled = cache_enabled
         self.cache_ttl = cache_ttl
         
+        context = {"method": "__init__", "cache_enabled": cache_enabled, "cache_ttl": cache_ttl}
+        
         # Initialize the database manager if caching is enabled
         if cache_enabled:
-            if db_manager is not None:
-                self.db_manager = db_manager
-                self.logger.info("Using provided database manager for caching")
-            else:
-                # Get database configuration from environment if not provided
-                if db_config is None:
-                    db_config = {}
+            # Validate TTL
+            if not validate_positive_integer(cache_ttl):
+                 raise ValueError("cache_ttl must be a positive integer")
+            context["cache_ttl"] = cache_ttl
+
+            try:
+                if db_manager is not None:
+                    self.db_manager = db_manager
+                    self.logger.info("Using provided database manager for caching")
+                else:
+                    # Determine DB type, validate if needed
+                    if db_config and 'db_type' in db_config:
+                         db_type_to_use = db_config['db_type'].lower()
+                         if not validate_enum(db_type_to_use, VALID_DB_TYPES):
+                              raise ValueError(f"Invalid db_type in db_config: {db_config['db_type']}. Must be one of {VALID_DB_TYPES}")
+                    else:
+                         db_type_to_use = os.environ.get("DB_TYPE", "sqlite").lower()
+                         if not validate_enum(db_type_to_use, VALID_DB_TYPES):
+                              raise ValueError(f"Invalid DB_TYPE environment variable: {os.environ.get('DB_TYPE')}. Must be one of {VALID_DB_TYPES}")
+                    context["db_type"] = db_type_to_use
                     
-                    # Get database type from environment (default to sqlite)
-                    db_type = os.environ.get("DB_TYPE", "sqlite")
-                    
-                    # Add database path for SQLite if specified
-                    if db_type == "sqlite" and "db_path" not in db_config:
+                    # Populate db_config from environment if needed
+                    if db_config is None: db_config = {}
+                    if db_type_to_use == "sqlite" and "db_path" not in db_config:
                         db_path = os.environ.get("DB_PATH")
-                        if db_path:
-                            db_config["db_path"] = db_path
-                            
-                    # Add PostgreSQL-specific settings if specified
-                    if db_type == "postgres":
+                        if db_path: db_config["db_path"] = db_path
+                    if db_type_to_use == "postgres":
                         for param in ["host", "port", "database", "user", "password"]:
                             env_var = f"POSTGRES_{param.upper()}"
                             if os.environ.get(env_var) and param not in db_config:
                                 db_config[param] = os.environ.get(env_var)
-                
-                # Get database manager from factory
-                self.db_manager = get_database_manager(
-                    db_type=os.environ.get("DB_TYPE", "sqlite"),
-                    db_config=db_config
-                )
+                    
+                    self.logger.info(f"Attempting to initialize DB manager for type: {db_type_to_use}")
+                    self.db_manager = get_database_manager(
+                        db_type=db_type_to_use,
+                        db_config=db_config
+                    )
                 self.logger.info(f"Initialized caching with TTL of {cache_ttl} seconds using {self.db_manager.__class__.__name__}")
+            except ValueError as ve:
+                 error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_CONFIG)
+                 self.logger.warning(f"Invalid configuration for cache DB: {error_details.message}")
+                 raise GoogleAdsClientError(f"Invalid cache configuration: {error_details.message}") from ve
+            except Exception as e:
+                 error_details = handle_exception(e, context=context, category=CATEGORY_CONFIG)
+                 self.logger.error(f"Failed to initialize cache database manager: {error_details.message}")
+                 raise GoogleAdsClientError(f"Cache database initialization failed: {error_details.message}") from e
         
         # Initialize API Call Tracker for query analysis
         self.api_tracker = APICallTracker(enabled=True)
@@ -149,11 +188,13 @@ class GoogleAdsServiceWithSQLiteCache(GoogleAdsClient):
         Returns:
             A unique string key for caching
         """
-        # Create a representation of the call
+        # Standardize: only include kwargs relevant to the query itself
+        # Exclude args if they are not consistently used or stable for caching keys
+        key_kwargs = {k: v for k, v in kwargs.items() if k in ['customer_id', 'start_date', 'end_date', 'campaign_id', 'ad_group_id', 'query']} 
         call_repr = {
             "method": method_name,
-            "args": args,
-            "kwargs": kwargs
+            # "args": args, # Consider if args are needed and stable
+            "kwargs": key_kwargs
         }
         
         # Convert to a stable JSON string and hash it

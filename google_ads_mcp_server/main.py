@@ -13,14 +13,28 @@ from health import setup_health_checks
 from mcp.handlers import register_mcp_handlers
 import uvicorn
 
+# Import logging utilities
+from google_ads_mcp_server.utils.logging import (
+    configure_logging,
+    add_request_context
+)
+
 def main():
-    # Setup logging
+    # Setup logging with our utility
     logging_level = getattr(logging, config.get("log_level", "INFO"))
-    logging.basicConfig(
-        level=logging_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_file_path = config.get("log_file_path")
+    json_logs = config.get("json_logs", False)
+    
+    # Configure logging
+    logger = configure_logging(
+        app_name="google-ads-mcp",
+        console_level=logging_level,
+        file_level=logging.DEBUG if log_file_path else None,
+        log_file_path=log_file_path,
+        json_output=json_logs,
+        detailed_console=True
     )
-    logger = logging.getLogger("google-ads-mcp")
+    
     logger.info("Starting Google Ads MCP server...")
     
     # Log app version and environment
@@ -37,6 +51,14 @@ def main():
     # Setup health checks
     logger.info("Initializing health check service...")
     setup_health_checks(app)
+    
+    # Add request context to logging
+    def get_request_id():
+        # This will be populated by middleware in server.py
+        # We're just defining the function here, to be used later
+        pass
+    
+    add_request_context(get_request_id)
     
     # Start the server
     host = config.get("api_host", "0.0.0.0")

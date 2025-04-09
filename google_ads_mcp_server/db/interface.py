@@ -366,6 +366,56 @@ class DatabaseInterface(abc.ABC):
         """
         pass
 
+    # --- User/Token Methods (Phase 3) ---
+
+    @abc.abstractmethod
+    async def get_token_data_by_hash(self, token_hash: str) -> Optional[Dict]:
+        """Retrieve token data and associated user_id based on the token's hash."""
+        pass
+
+    @abc.abstractmethod
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        """Retrieve user details based on user_id."""
+        pass
+        
+    @abc.abstractmethod
+    async def create_user(self, username: str, email: Optional[str] = None, status: str = 'active') -> int:
+        """Create a new user and return their user_id."""
+        pass
+
+    @abc.abstractmethod
+    async def add_user_token(self, user_id: int, token_hash: str, description: Optional[str] = None, expires_at: Optional[datetime] = None, status: str = 'active') -> int:
+        """Add a new token (hashed) for a user and return the token_id."""
+        pass
+
+    @abc.abstractmethod
+    async def update_token_last_used(self, token_id: int):
+        """Update the last_used timestamp for a specific token."""
+        pass
+
+    @abc.abstractmethod
+    async def delete_token(self, token_id: int):
+        """Delete/invalidate a specific token (by ID or hash)."""
+        # Consider whether this should truly delete or just set status to 'revoked'.
+        pass
+        
+    # --- User Account Access Methods (Phase 3 / Future) ---
+    
+    @abc.abstractmethod
+    async def add_account_access(self, user_id: int, customer_id: str, access_level: str = 'read', granted_by: Optional[int] = None):
+        """Grant a user access to a specific Google Ads customer ID."""
+        pass
+        
+    @abc.abstractmethod
+    async def get_user_accessible_accounts(self, user_id: int) -> List[Dict]:
+        """Get a list of Google Ads customer IDs accessible by a user."""
+        pass
+
+    @abc.abstractmethod
+    async def check_account_access(self, user_id: int, customer_id: str, required_level: str = 'read') -> bool:
+        """Check if a user has the required access level for a specific customer ID."""
+        pass
+
 
 class DatabaseError(Exception):
     """Exception raised for database errors."""

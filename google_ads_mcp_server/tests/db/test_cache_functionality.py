@@ -12,8 +12,9 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import logging
 
-from db.interface import DatabaseInterface
-from db.factory import get_database_manager
+from google_ads_mcp_server.db.interface import DatabaseInterface
+from google_ads_mcp_server.db.factory import get_database_manager
+from google_ads_mcp_server.db.models import CacheEntry
 from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
 
 

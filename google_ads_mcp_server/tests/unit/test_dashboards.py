@@ -101,7 +101,7 @@ class TestDashboardVisualizations(unittest.TestCase):
                 "conversions": 3
             },
             {
-                "id": 012,
+                "id": 12,
                 "name": "Ad Group 2",
                 "campaign_name": "Campaign 1",
                 "status": "ENABLED",

@@ -17,19 +17,14 @@ import json
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the shared mock client creator
+# Use absolute imports
+from google_ads_mcp_server.google_ads.keywords import KeywordService
+from google_ads_mcp_server.utils.logging import configure_logging, get_logger
 from tests.utils.mock_google_ads import create_mock_google_ads_client, DEFAULT_CUSTOMER_ID
 
-# Import the specific service needed
-from google_ads.keywords import KeywordService 
-
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-
-logger = logging.getLogger('query-optimization-test')
+configure_logging()
+logger = get_logger(__name__)
 
 class QueryOptimizationTest:
     """Tests for query optimization improvements"""
@@ -38,7 +33,7 @@ class QueryOptimizationTest:
         self.customer_id = customer_id
         self.client = None
         self.keyword_service = None
-    
+        
     async def setup(self):
         """Initialize test dependencies"""
         logger.info("Setting up query optimization tests...")
@@ -59,8 +54,8 @@ class QueryOptimizationTest:
         start_time = time.time()
         try:
             keywords = await self.keyword_service.get_keywords(
-                customer_id=self.customer_id
-            )
+            customer_id=self.customer_id
+        )
             basic_query_time = time.time() - start_time
             logger.info(f"Basic query returned {len(keywords)} keywords in {basic_query_time:.4f} seconds")
             assert len(keywords) > 0, "Basic query should return results"
@@ -199,6 +194,6 @@ if __name__ == "__main__":
         print("Usage: python test_query_optimization.py <customer_id>")
         print(f"Example: python test_query_optimization.py {DEFAULT_CUSTOMER_ID}")
         sys.exit(1)
-    
+        
     customer_id_arg = sys.argv[1]
     asyncio.run(main(customer_id_arg)) 

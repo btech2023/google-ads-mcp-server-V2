@@ -12,20 +12,20 @@ import asyncio
 import argparse
 import logging
 from datetime import datetime, timedelta
+import random
+import time
+from unittest.mock import MagicMock
 
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
-from utils.api_tracker import APICallTracker
+# Use absolute imports
+from google_ads_mcp_server.google_ads.client_with_sqlite_cache import GoogleAdsServiceWithSQLiteCache
+from google_ads_mcp_server.utils.api_tracker import ApiCallTracker
+from google_ads_mcp_server.db.factory import get_database_manager
+from google_ads_mcp_server.utils.logging import configure_logging, get_logger
 from scripts.analyze_api_usage import generate_report
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+configure_logging(console_level=logging.INFO)
+logger = get_logger(__name__)
 
 async def run_test_calls(client, customer_id, days_back=30, cache_enabled=True):
     """Run a series of test API calls to generate tracking data."""

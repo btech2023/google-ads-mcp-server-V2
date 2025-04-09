@@ -12,26 +12,25 @@ import asyncio
 import logging
 import time
 import json
-from typing import List, Dict, Any
+import random
+from typing import List, Dict, Any, Tuple
 from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the shared mock client creator
-from tests.utils.mock_google_ads import create_mock_google_ads_client, DEFAULT_CUSTOMER_ID, MockBatchManager
+from google_ads_mcp_server.tests.utils.mock_google_ads import create_mock_google_ads_client, DEFAULT_CUSTOMER_ID, MockBatchManager
 
-# Import required modules
-from google_ads.batch_operations import BatchManager
+# Use absolute imports
+from google_ads_mcp_server.google_ads.batch_operations import BatchManager
+from google_ads_mcp_server.utils.error_handler import ErrorDetails
+from google_ads_mcp_server.utils.logging import configure_logging, get_logger
 from google_ads.budgets import BudgetService
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-
-logger = logging.getLogger('batch-processing-test')
+configure_logging(console_level=logging.INFO)
+logger = get_logger(__name__)
 
 class BatchProcessingTest:
     """

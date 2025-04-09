@@ -11,13 +11,45 @@ import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 import asyncio
 
-from google_ads.client import GoogleAdsService
-from google_ads.keywords import KeywordService
-from google_ads.search_terms import SearchTermService
-from google_ads.budgets import BudgetService
-from google_ads.ad_groups import AdGroupService
+# Import underlying services (using relative imports)
+from .client import GoogleAdsService
+from .keywords import KeywordService
+from .search_terms import SearchTermService
+from .budgets import BudgetService
+from .ad_groups import AdGroupService
 
-logger = logging.getLogger(__name__)
+# Import utility modules (using relative imports)
+from ..utils.logging import get_logger
+from ..utils.validation import (
+    validate_customer_id,
+    validate_date_format,
+    validate_date_range,
+    validate_enum,
+    validate_list_of_strings,
+    validate_float_range,
+    validate_numeric_range,
+    validate_positive_integer
+)
+from ..utils.error_handler import (
+    handle_exception,
+    handle_google_ads_exception,
+    create_error_response,
+    ErrorDetails,
+    CATEGORY_BUSINESS_LOGIC,
+    CATEGORY_API_ERROR,
+    CATEGORY_VALIDATION,
+    SEVERITY_ERROR,
+    SEVERITY_WARNING
+)
+from ..utils.formatting import clean_customer_id, format_customer_id
+
+# Initialize logger using utility
+logger = get_logger(__name__)
+
+# Define constants for valid enum values
+VALID_ENTITY_TYPES = ["CAMPAIGN", "AD_GROUP", "KEYWORD"]
+VALID_COMPARISON_PERIODS = ["PREVIOUS_PERIOD", "SAME_PERIOD_LAST_YEAR"]
+DEFAULT_METRICS = ["impressions", "clicks", "cost", "ctr", "conversions"]
 
 class InsightsService:
     """
@@ -55,7 +87,8 @@ class InsightsService:
         threshold: float = 2.0
     ) -> Dict[str, Any]:
         """
-        Detect anomalies in performance metrics.
+        Detect anomalies in performance metrics. 
+        Returns a dictionary with results or raises ValueError/RuntimeError on failure.
         
         Args:
             customer_id: Google Ads customer ID
@@ -68,50 +101,124 @@ class InsightsService:
             threshold: Z-score threshold for anomaly detection (default: 2.0)
             
         Returns:
-            Dictionary containing detected anomalies
+            Dictionary containing detected anomalies, or raises an exception.
         """
-        logger.info(f"Detecting performance anomalies for customer {customer_id}")
-        
-        # Set default dates if not provided
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-        if not start_date:
-            # Default to 7 days for anomaly detection
-            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-            
-        # Set default metrics if not provided
-        if not metrics:
-            metrics = ["impressions", "clicks", "cost", "ctr", "conversions"]
-            
-        # Get performance data for current period
-        current_data = await self._get_performance_data(
-            customer_id, entity_type, entity_ids, metrics, start_date, end_date
-        )
-        
-        # Get comparison data
-        comparison_data = await self._get_comparison_data(
-            customer_id, entity_type, entity_ids, metrics, start_date, end_date, comparison_period
-        )
-        
-        # Detect anomalies
-        anomalies = self._analyze_for_anomalies(
-            current_data, comparison_data, metrics, threshold
-        )
-        
-        return {
-            "anomalies": anomalies,
-            "metadata": {
-                "customer_id": customer_id,
-                "entity_type": entity_type,
-                "start_date": start_date,
-                "end_date": end_date,
-                "comparison_period": comparison_period,
-                "threshold": threshold,
-                "total_entities_analyzed": len(current_data) if current_data else 0,
-                "anomalies_detected": len(anomalies),
-                "metrics_analyzed": metrics
-            }
+        context = {
+            "customer_id": customer_id,
+            "entity_type": entity_type,
+            "entity_ids": entity_ids,
+            "metrics": metrics,
+            "start_date": start_date,
+            "end_date": end_date,
+            "comparison_period": comparison_period,
+            "threshold": threshold,
+            "method": "detect_performance_anomalies"
         }
+
+        try:
+            # --- Input Validation ---
+            validation_errors = []
+            
+            if not validate_customer_id(customer_id):
+                validation_errors.append(f"Invalid customer ID format: {customer_id}")
+            
+            if not validate_enum(entity_type, VALID_ENTITY_TYPES):
+                validation_errors.append(f"Invalid entity_type: {entity_type}. Must be one of {VALID_ENTITY_TYPES}")
+
+            if not validate_enum(comparison_period, VALID_COMPARISON_PERIODS):
+                validation_errors.append(f"Invalid comparison_period: {comparison_period}. Must be one of {VALID_COMPARISON_PERIODS}")
+
+            # Validate threshold (e.g., must be between 0.5 and 5.0)
+            if not validate_float_range(threshold, 0.5, 5.0):
+                validation_errors.append(f"Invalid threshold: {threshold}. Must be between 0.5 and 5.0")
+
+            # Validate entity_ids if provided
+            if entity_ids is not None and not validate_list_of_strings(entity_ids, allow_empty=True):
+                validation_errors.append("entity_ids must be None or a list of strings")
+
+            # Set default dates if not provided
+            if not end_date:
+                end_date = datetime.now().strftime("%Y-%m-%d")
+            if not start_date:
+                start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+            # Validate date formats and range
+            if not validate_date_format(start_date):
+                validation_errors.append(f"Invalid start_date format: {start_date}")
+            elif not validate_date_format(end_date):
+                validation_errors.append(f"Invalid end_date format: {end_date}")
+            elif not validate_date_range(start_date, end_date):
+                validation_errors.append(f"Invalid date range: {start_date} to {end_date}")
+            
+            # Set default metrics if not provided, validate if provided
+            if metrics is not None and not validate_list_of_strings(metrics, allow_empty=False):
+                validation_errors.append("metrics must be a non-empty list of strings if provided")
+                
+            # If validation errors found, raise ValueError with all errors
+            if validation_errors:
+                raise ValueError("; ".join(validation_errors))
+                
+            # Prepare validated values
+            cleaned_customer_id = clean_customer_id(customer_id)
+            context["customer_id"] = cleaned_customer_id
+            
+            metrics_to_use = metrics if metrics is not None else DEFAULT_METRICS
+            context["metrics"] = metrics_to_use
+                
+            context["start_date"] = start_date
+            context["end_date"] = end_date
+                 
+            logger.info(f"Detecting performance anomalies for customer {format_customer_id(cleaned_customer_id)} ({entity_type}) from {start_date} to {end_date}")
+        
+            # --- Core Logic --- 
+            # Get performance data for current period (delegate validation of IDs to underlying service)
+            current_data = await self._get_performance_data(
+                cleaned_customer_id, entity_type, entity_ids, metrics_to_use, start_date, end_date
+            )
+            
+            # Get comparison data
+            comparison_data = await self._get_comparison_data(
+                cleaned_customer_id, entity_type, entity_ids, metrics_to_use, start_date, end_date, comparison_period
+            )
+            
+            # Detect anomalies (internal logic, assumes valid inputs now)
+            anomalies = self._analyze_for_anomalies(
+                current_data, comparison_data, metrics_to_use, threshold
+            )
+            
+            logger.info(f"Detected {len(anomalies)} anomalies for customer {format_customer_id(cleaned_customer_id)}")
+            
+            # --- Format Results --- 
+            return {
+                "anomalies": anomalies,
+                "metadata": {
+                    "customer_id": cleaned_customer_id,
+                    "entity_type": entity_type,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "comparison_period": comparison_period,
+                    "threshold": threshold,
+                    "total_entities_analyzed": len(current_data) if current_data else 0,
+                    "anomalies_detected": len(anomalies),
+                    "metrics_analyzed": metrics_to_use
+                }
+            }
+          
+        except ValueError as ve:
+            # Handle known validation errors
+            error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_VALIDATION)
+            logger.warning(f"Validation error detecting anomalies: {error_details.message}")
+            raise ve
+        except Exception as e:
+            # Handle Google Ads API exceptions specifically
+            if "GoogleAdsException" in str(type(e)):
+                error_details = handle_google_ads_exception(e, context=context)
+                logger.error(f"Google Ads API error detecting anomalies: {error_details.message}")
+            else:
+                error_details = handle_exception(e, context=context, category=CATEGORY_BUSINESS_LOGIC)
+                logger.error(f"Error detecting performance anomalies: {error_details.message}")
+            
+            raise RuntimeError(f"Failed to detect anomalies: {error_details.message}") from e
         
     async def _get_performance_data(
         self, 
@@ -136,30 +243,35 @@ class InsightsService:
         Returns:
             List of entities with performance data
         """
-        if entity_type == "CAMPAIGN":
-            return await self.google_ads_service.get_campaigns(
-                start_date=start_date,
-                end_date=end_date,
-                customer_id=customer_id,
-                campaign_ids=entity_ids
-            )
-        elif entity_type == "AD_GROUP":
-            return await self.ad_group_service.get_ad_groups(
-                customer_id=customer_id,
-                ad_group_ids=entity_ids,
-                start_date=start_date,
-                end_date=end_date
-            )
-        elif entity_type == "KEYWORD":
-            return await self.keyword_service.get_keywords(
-                customer_id=customer_id,
-                keyword_ids=entity_ids,
-                start_date=start_date,
-                end_date=end_date
-            )
-        else:
-            logger.warning(f"Unsupported entity type: {entity_type}")
-            return []
+        try:
+            if entity_type == "CAMPAIGN":
+                return await self.google_ads_service.get_campaigns(
+                    start_date=start_date,
+                    end_date=end_date,
+                    customer_id=customer_id,
+                    campaign_ids=entity_ids
+                )
+            elif entity_type == "AD_GROUP":
+                return await self.ad_group_service.get_ad_groups(
+                    customer_id=customer_id,
+                    ad_group_ids=entity_ids,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+            elif entity_type == "KEYWORD":
+                return await self.keyword_service.get_keywords(
+                    customer_id=customer_id,
+                    keyword_ids=entity_ids,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+            else:
+                logger.warning(f"Unsupported entity type: {entity_type}")
+                return []
+        except Exception as e:
+            logger.error(f"Error getting performance data for {entity_type}: {str(e)}")
+            # Propagate exception to calling method
+            raise
             
     async def _get_comparison_data(
         self,
@@ -186,32 +298,39 @@ class InsightsService:
         Returns:
             List of entities with comparison performance data
         """
-        # Calculate comparison date range
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        date_range = (end_dt - start_dt).days + 1
-        
-        if comparison_period == "PREVIOUS_PERIOD":
-            comparison_end = start_dt - timedelta(days=1)
-            comparison_start = comparison_end - timedelta(days=date_range-1)
-        elif comparison_period == "SAME_PERIOD_LAST_YEAR":
-            comparison_start = start_dt - timedelta(days=365)
-            comparison_end = end_dt - timedelta(days=365)
-        else:
-            logger.warning(f"Unsupported comparison period: {comparison_period}")
-            return []
+        try:
+            # Calculate comparison date range
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            date_range = (end_dt - start_dt).days + 1
             
-        comparison_start_str = comparison_start.strftime("%Y-%m-%d")
-        comparison_end_str = comparison_end.strftime("%Y-%m-%d")
-        
-        return await self._get_performance_data(
-            customer_id,
-            entity_type,
-            entity_ids,
-            metrics,
-            comparison_start_str,
-            comparison_end_str
-        )
+            if comparison_period == "PREVIOUS_PERIOD":
+                comparison_end = start_dt - timedelta(days=1)
+                comparison_start = comparison_end - timedelta(days=date_range-1)
+            elif comparison_period == "SAME_PERIOD_LAST_YEAR":
+                comparison_start = start_dt - timedelta(days=365)
+                comparison_end = end_dt - timedelta(days=365)
+            else:
+                logger.warning(f"Unsupported comparison period: {comparison_period}")
+                return []
+                
+            comparison_start_str = comparison_start.strftime("%Y-%m-%d")
+            comparison_end_str = comparison_end.strftime("%Y-%m-%d")
+            
+            logger.debug(f"Getting comparison data for {entity_type} from {comparison_start_str} to {comparison_end_str}")
+            
+            return await self._get_performance_data(
+                customer_id,
+                entity_type,
+                entity_ids,
+                metrics,
+                comparison_start_str,
+                comparison_end_str
+            )
+        except Exception as e:
+            logger.error(f"Error getting comparison data: {str(e)}")
+            # Propagate exception to calling method
+            raise
     
     def _analyze_for_anomalies(
         self,
@@ -233,6 +352,7 @@ class InsightsService:
             List of detected anomalies
         """
         if not current_data or not comparison_data or not metrics:
+            logger.warning("Anomaly analysis skipped: Missing current data, comparison data, or metrics.")
             return []
             
         anomalies = []
@@ -243,8 +363,10 @@ class InsightsService:
         # Pre-calculate metric statistics once to avoid recalculation
         metric_stats = {}
         for metric in metrics:
-            values = [item.get(metric, 0) for item in current_data if metric in item]
+            # Ensure values are numeric for stats calculation, default to 0 if not found or not numeric
+            values = [item.get(metric, 0) for item in current_data if isinstance(item.get(metric), (int, float))]
             if not values or len(values) < 2:
+                logger.debug(f"Skipping stats calculation for metric '{metric}': insufficient valid data points ({len(values)} found).")
                 continue
                 
             mean = sum(values) / len(values)
@@ -263,20 +385,23 @@ class InsightsService:
             if not entity_id:
                 continue
                 
-            # Get comparison data for this entity using dictionary lookup
+            # Get comparison data for this entity using dictionary lookup (safe access)
             comparison_item = comparison_map.get(entity_id)
             if not comparison_item:
+                logger.debug(f"Skipping anomaly check for entity {entity_id}: No comparison data found.")
                 continue
                 
             entity_anomalies = []
             
             for metric in metrics:
-                # Skip if metric doesn't exist in either dataset
-                if metric not in item or metric not in comparison_item:
+                # Skip if metric doesn't exist in either dataset or stats missing
+                if metric not in item or metric not in comparison_item or metric not in metric_stats:
+                    logger.debug(f"Skipping anomaly check for metric '{metric}' on entity {entity_id}: Missing data or stats.")
                     continue
                     
-                current_value = item.get(metric, 0)
-                comparison_value = comparison_item.get(metric, 0)
+                # Ensure values are numeric, default to 0 otherwise
+                current_value = item.get(metric, 0) if isinstance(item.get(metric), (int, float)) else 0
+                comparison_value = comparison_item.get(metric, 0) if isinstance(comparison_item.get(metric), (int, float)) else 0
                 
                 # Skip metrics with zero or very small values to avoid false positives
                 if abs(current_value) < 1e-9 and abs(comparison_value) < 1e-9:
@@ -285,191 +410,253 @@ class InsightsService:
                 # Calculate change
                 if comparison_value != 0:
                     change_pct = (current_value - comparison_value) / abs(comparison_value)
+                # Handle division by zero for change_pct calculation safely
+                elif abs(comparison_value) < 1e-9 and abs(current_value) >= 1e-9:
+                     # Significant change from zero
+                    change_pct = 1.0 if current_value > 0 else -1.0 
                 else:
-                    # If comparison value is zero, use a large value to indicate significant change
-                    change_pct = 1.0 if current_value > 0 else 0.0
+                    # Both are zero or near-zero, no change
+                    change_pct = 0.0
                 
-                # Calculate z-score if we have statistics for this metric
-                if metric in metric_stats and metric_stats[metric]['std_dev'] > 0:
-                    z_score = abs(current_value - metric_stats[metric]['mean']) / metric_stats[metric]['std_dev']
+                # Calculate Z-score (standard score)
+                mean = metric_stats[metric]['mean']
+                std_dev = metric_stats[metric]['std_dev']
+                
+                if std_dev > 0:
+                    z_score = abs((current_value - mean) / std_dev)
                 else:
-                    # Skip z-score analysis if we don't have valid statistics
-                    z_score = 0
+                    # If std_dev is 0, we can't calculate a z-score
+                    z_score = 0.0
                 
-                # Detect anomalies: significant change AND unusual value
-                # We now combine both criteria to avoid false positives
-                is_anomaly = (abs(change_pct) > 0.2) and (z_score > threshold)
-                
-                if is_anomaly:
-                    entity_anomalies.append({
-                        'metric': metric,
-                        'current_value': current_value,
-                        'comparison_value': comparison_value,
-                        'change_pct': change_pct,
-                        'z_score': z_score,
-                        'direction': 'increase' if current_value > comparison_value else 'decrease',
-                        'severity': 'high' if z_score > threshold * 1.5 else 'medium'
-                    })
-            
-            # Only add entities with actual anomalies
-            if entity_anomalies:
-                # Include essential entity data with the anomalies
-                entity_data = {
-                    'id': entity_id,
-                    'name': item.get('name', 'Unknown'),
-                    'type': item.get('type', 'Unknown'),
-                    'status': item.get('status', 'Unknown'),
-                    'anomalies': entity_anomalies
-                }
-                
-                anomalies.append(entity_data)
+                # Check if it's an anomaly
+                if z_score >= threshold:
+                    # Create a dictionary with only one direction of change (compared to previous)
+                    # This simplifies interpretation of results
+                    direction = "increase" if current_value > comparison_value else "decrease"
+                    change_pct_abs = abs(change_pct)
+                    
+                    anomaly = {
+                        "entity_id": entity_id,
+                        "entity_name": item.get("name", "Unknown"),
+                        "metric": metric,
+                        "current_value": current_value,
+                        "previous_value": comparison_value,
+                        "direction": direction,
+                        "change_pct": change_pct_abs,
+                        "z_score": z_score
+                    }
+                    
+                    # Skip low-value anomalies below absolute thresholds to reduce noise
+                    # Thresholds should be adjusted based on the metric
+                    if _is_significant_anomaly(anomaly):
+                        anomalies.append(anomaly)
+                        
+        # Sort anomalies by severity (z-score) and limit to top results
+        anomalies.sort(key=lambda x: x.get("z_score", 0), reverse=True)
         
-        # Sort anomalies by severity, then by highest change percentage
-        anomalies.sort(
-            key=lambda x: (
-                sum(1 for a in x['anomalies'] if a['severity'] == 'high'),
-                max(abs(a['change_pct']) for a in x['anomalies']) if x['anomalies'] else 0
-            ),
-            reverse=True
-        )
-        
-        return anomalies
+        # Return top anomalies (limit to 50 to avoid overwhelming response)
+        return anomalies[:50]
     
     async def generate_optimization_suggestions(
-        self,
-        customer_id: str,
-        entity_type: Optional[str] = None,
-        entity_ids: Optional[List[str]] = None,
-        start_date: Optional[str] = None,
+        self, 
+        customer_id: str, 
+        entity_type: Optional[str] = None, 
+        entity_ids: Optional[List[str]] = None, 
+        start_date: Optional[str] = None, 
         end_date: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Generate optimization suggestions for the account, campaigns, or ad groups.
+        Generate optimization suggestions for the account or specified entities.
+        Returns a dictionary with results or raises ValueError/RuntimeError on failure.
         
         Args:
             customer_id: Google Ads customer ID
             entity_type: Optional entity type (CAMPAIGN, AD_GROUP)
             entity_ids: Optional list of entity IDs to analyze
-            start_date: Start date for analysis (defaults to 30 days ago)
-            end_date: End date for analysis (defaults to today)
+            start_date: Start date (YYYY-MM-DD) for analysis (defaults to 30 days ago)
+            end_date: End date (YYYY-MM-DD) for analysis (defaults to today)
             
         Returns:
-            Dictionary containing optimization suggestions
+            Dictionary containing optimization suggestions, or raises an exception.
         """
-        logger.info(f"Generating optimization suggestions for customer {customer_id}")
-        
-        # Set default dates if not provided
-        if not end_date:
-            end_date = datetime.now().strftime("%Y-%m-%d")
-        if not start_date:
-            # Default to 30 days
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-            
-        # Initialize suggestions dictionary
-        suggestions = {
-            "bid_management": [],
-            "budget_allocation": [],
-            "negative_keywords": [],
-            "ad_copy": [],
-            "account_structure": []
+        context = {
+            "customer_id": customer_id,
+            "entity_type": entity_type,
+            "entity_ids": entity_ids,
+            "start_date": start_date,
+            "end_date": end_date,
+            "method": "generate_optimization_suggestions"
         }
-        
-        # Batch data retrieval - get all the data we need upfront
-        data_cache = {}
-        
-        # 1. Get account-level data (needed regardless of entity_type)
-        account_data = await self._batch_retrieve_account_data(
-            customer_id, 
-            start_date, 
-            end_date
-        )
-        data_cache["account"] = account_data
-        
-        # 2. Get entity-specific data
-        if entity_type == "CAMPAIGN" and entity_ids:
-            # Analyze specific campaigns
-            campaign_data = await self._analyze_campaigns_for_suggestions(
-                customer_id, entity_ids, start_date, end_date
-            )
-            for category, campaign_suggestions in campaign_data.items():
-                suggestions[category].extend(campaign_suggestions)
-        elif entity_type == "AD_GROUP" and entity_ids:
-            # Analyze specific ad groups
-            ad_group_data = await self._analyze_ad_groups_for_suggestions(
-                customer_id, entity_ids, start_date, end_date
-            )
-            for category, ad_group_suggestions in ad_group_data.items():
-                suggestions[category].extend(ad_group_suggestions)
-        else:
-            # Analyze the entire account
-            # Get campaign data in batch
-            campaign_data = await self._batch_retrieve_campaign_data(
-                customer_id, 
+
+        try:
+            # --- Input Validation ---
+            validation_errors = []
+            
+            if not validate_customer_id(customer_id):
+                validation_errors.append(f"Invalid customer ID format: {customer_id}")
+            
+            # Create valid entity types list with None included
+            valid_entity_types_with_none = VALID_ENTITY_TYPES + [None]
+            if entity_type not in valid_entity_types_with_none:
+                validation_errors.append(f"Invalid entity_type: {entity_type}. Must be one of {VALID_ENTITY_TYPES} or None")
+            
+            # Validate entity IDs if provided (must match entity_type)
+            if entity_ids is not None:
+                if not entity_type:
+                    validation_errors.append("entity_type must be specified if entity_ids are provided")
+                elif not validate_list_of_strings(entity_ids, allow_empty=False):
+                    validation_errors.append("entity_ids must be a non-empty list of strings if provided")
+            
+            # Set default dates if not provided
+            if not end_date:
+                end_date = datetime.now().strftime("%Y-%m-%d")
+            if not start_date:
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+            
+            # Validate date formats and range
+            if not validate_date_format(start_date):
+                validation_errors.append(f"Invalid start_date format: {start_date}")
+            elif not validate_date_format(end_date):
+                validation_errors.append(f"Invalid end_date format: {end_date}")
+            elif not validate_date_range(start_date, end_date):
+                validation_errors.append(f"Invalid date range: {start_date} to {end_date}")
+            
+            # If validation errors found, raise ValueError with all errors
+            if validation_errors:
+                raise ValueError("; ".join(validation_errors))
+                
+            # Prepare validated values
+            cleaned_customer_id = clean_customer_id(customer_id)
+            context["customer_id"] = cleaned_customer_id
+            context["start_date"] = start_date
+            context["end_date"] = end_date
+
+            logger.info(f"Generating optimization suggestions for customer {format_customer_id(cleaned_customer_id)} ({entity_type or 'ACCOUNT'}) from {start_date} to {end_date}")
+          
+            # --- Core Logic ---
+            # Initialize suggestions dictionary
+            suggestions = {
+                "bid_management": [],
+                "budget_allocation": [],
+                "negative_keywords": [],
+                "ad_copy": [],
+                "account_structure": []
+            }
+            
+            # Batch data retrieval - get all the data we need upfront
+            data_cache = {}
+            
+            # 1. Get account-level data (needed regardless of entity_type)
+            account_data = await self._batch_retrieve_account_data(
+                cleaned_customer_id, 
                 start_date, 
                 end_date
             )
-            data_cache["campaigns"] = campaign_data
+            data_cache["account"] = account_data
             
-            # Use the cached data for analysis
-            campaign_suggestions = self._analyze_campaign_data_for_suggestions(
-                campaign_data, 
-                account_data
-            )
+            # 2. Get entity-specific data
+            if entity_type == "CAMPAIGN" and entity_ids:
+                # Analyze specific campaigns
+                campaign_data = await self._analyze_campaigns_for_suggestions(
+                    cleaned_customer_id, entity_ids, start_date, end_date
+                )
+                for category, campaign_suggestions in campaign_data.items():
+                    suggestions[category].extend(campaign_suggestions)
+            elif entity_type == "AD_GROUP" and entity_ids:
+                # Analyze specific ad groups
+                ad_group_data = await self._analyze_ad_groups_for_suggestions(
+                    cleaned_customer_id, entity_ids, start_date, end_date
+                )
+                for category, ad_group_suggestions in ad_group_data.items():
+                    suggestions[category].extend(ad_group_suggestions)
+            else:
+                # Analyze the entire account
+                # Get campaign data in batch
+                campaign_data = await self._batch_retrieve_campaign_data(
+                    cleaned_customer_id, 
+                    start_date, 
+                    end_date
+                )
+                data_cache["campaigns"] = campaign_data
+                
+                # Use the cached data for analysis
+                campaign_suggestions = self._analyze_campaign_data_for_suggestions(
+                    campaign_data, 
+                    account_data
+                )
+                
+                for category, campaign_suggs in campaign_suggestions.items():
+                    suggestions[category].extend(campaign_suggs)
+                
+                # Get ad group data in batch
+                ad_group_data = await self._batch_retrieve_ad_group_data(
+                    cleaned_customer_id, 
+                    start_date, 
+                    end_date,
+                    campaign_data.get("campaigns", [])
+                )
+                data_cache["ad_groups"] = ad_group_data
+                
+                # Use the cached data for analysis
+                ad_group_suggestions = self._analyze_ad_group_data_for_suggestions(
+                    ad_group_data, 
+                    campaign_data
+                )
+                
+                for category, ad_group_suggs in ad_group_suggestions.items():
+                    suggestions[category].extend(ad_group_suggs)
+                
+                # Generate account-wide suggestions
+                account_suggestions = self._generate_account_suggestions(
+                    account_data, 
+                    campaign_data, 
+                    ad_group_data
+                )
+                
+                for category, account_suggs in account_suggestions.items():
+                    suggestions[category].extend(account_suggs)
             
-            for category, campaign_suggs in campaign_suggestions.items():
-                suggestions[category].extend(campaign_suggs)
+            # Sort suggestions by impact
+            for category in suggestions:
+                suggestions[category] = sorted(
+                    suggestions[category],
+                    key=lambda x: x.get("impact_score", 0),
+                    reverse=True
+                )
+                
+                # Limit to top 10 suggestions per category
+                suggestions[category] = suggestions[category][:10]
             
-            # Get ad group data in batch
-            ad_group_data = await self._batch_retrieve_ad_group_data(
-                customer_id, 
-                start_date, 
-                end_date,
-                campaign_data.get("campaigns", [])
-            )
-            data_cache["ad_groups"] = ad_group_data
+            logger.info(f"Generated {sum(len(suggestions[key]) for key in suggestions)} suggestions for customer {format_customer_id(cleaned_customer_id)}")
             
-            # Use the cached data for analysis
-            ad_group_suggestions = self._analyze_ad_group_data_for_suggestions(
-                ad_group_data, 
-                campaign_data
-            )
-            
-            for category, ad_group_suggs in ad_group_suggestions.items():
-                suggestions[category].extend(ad_group_suggs)
-            
-            # Generate account-wide suggestions
-            account_suggestions = self._generate_account_suggestions(
-                account_data, 
-                campaign_data, 
-                ad_group_data
-            )
-            
-            for category, account_suggs in account_suggestions.items():
-                suggestions[category].extend(account_suggs)
-        
-        # Sort suggestions by impact
-        for category in suggestions:
-            suggestions[category] = sorted(
-                suggestions[category],
-                key=lambda x: x.get("impact_score", 0),
-                reverse=True
-            )
-            
-            # Limit to top 10 suggestions per category
-            suggestions[category] = suggestions[category][:10]
-        
-        return {
-            "suggestions": suggestions,
-            "metadata": {
-                "customer_id": customer_id,
-                "entity_type": entity_type,
-                "entity_ids": entity_ids,
-                "start_date": start_date,
-                "end_date": end_date,
-                "total_suggestions": sum(len(suggestions[key]) for key in suggestions)
+            return {
+                "suggestions": suggestions,
+                "metadata": {
+                    "customer_id": cleaned_customer_id,
+                    "entity_type": entity_type,
+                    "entity_ids": entity_ids,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "total_suggestions": sum(len(suggestions[key]) for key in suggestions)
+                }
             }
-        }
         
+        except ValueError as ve:
+            # Handle known validation errors
+            error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_VALIDATION)
+            logger.warning(f"Validation error generating suggestions: {error_details.message}")
+            raise ve
+        except Exception as e:
+            # Handle Google Ads API exceptions specifically
+            if "GoogleAdsException" in str(type(e)):
+                error_details = handle_google_ads_exception(e, context=context)
+                logger.error(f"Google Ads API error generating suggestions: {error_details.message}")
+            else:
+                error_details = handle_exception(e, context=context, category=CATEGORY_BUSINESS_LOGIC)
+                logger.error(f"Error generating optimization suggestions: {error_details.message}")
+            
+            raise RuntimeError(f"Failed to generate suggestions: {error_details.message}") from e
+
     async def _batch_retrieve_account_data(self, customer_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
         """
         Retrieve all needed account-level data in a single batch of concurrent calls.
@@ -483,6 +670,8 @@ class InsightsService:
             Dictionary containing account data
         """
         # Execute multiple API calls concurrently
+        # Note: asyncio.gather stops on the first exception. Errors from underlying
+        # services are expected to propagate and be caught by the calling method.
         account_tasks = [
             self.google_ads_service.get_account_summary(customer_id),
             self.google_ads_service.get_account_performance(
@@ -529,6 +718,7 @@ class InsightsService:
             Dictionary containing campaign data
         """
         # Execute multiple API calls concurrently
+        # Note: asyncio.gather stops on the first exception.
         campaign_tasks = [
             self.google_ads_service.get_campaigns(
                 customer_id=customer_id,
@@ -579,15 +769,20 @@ class InsightsService:
             Dictionary containing ad group data
         """
         # Get campaign IDs for top campaigns only (limit to 10 for efficiency)
-        # Sort campaigns by cost
+        # Sort campaigns by cost (safe access with .get)
         sorted_campaigns = sorted(
             campaigns,
             key=lambda x: x.get("cost_micros", 0),
             reverse=True
         )
-        top_campaign_ids = [c.get("id") for c in sorted_campaigns[:10] if "id" in c]
+        top_campaign_ids = [c.get("id") for c in sorted_campaigns[:10] if c.get("id")]
         
+        if not top_campaign_ids:
+             logger.warning(f"No top campaign IDs found for customer {customer_id} to retrieve ad group data.")
+             return {"ad_groups": [], "keywords": []} # Return empty data if no campaigns to query
+             
         # Execute multiple API calls concurrently
+        # Note: asyncio.gather stops on the first exception.
         ad_group_tasks = [
             self.ad_group_service.get_ad_groups(
                 customer_id=customer_id,
@@ -649,24 +844,27 @@ class InsightsService:
             campaign_id = campaign.get('id', '')
             campaign_name = campaign.get('name', 'Unknown')
             budget_id = campaign.get('budget_id', '')
-            campaign_status = campaign.get('status', '')
+            campaign_status = campaign.get('status', 'UNKNOWN')
             
             # Skip non-active campaigns
             if campaign_status != 'ENABLED':
                 continue
                 
-            # Skip campaigns with no budget
-            if not budget_id or budget_id not in budget_map:
+            # Skip campaigns with no budget or whose budget wasn't retrieved
+            budget = budget_map.get(budget_id)
+            if not budget:
+                logger.debug(f"Skipping budget analysis for campaign {campaign_id}: Budget data missing.")
                 continue
                 
-            budget = budget_map[budget_id]
-            budget_amount = budget.get('amount_micros', 0) / 1000000  # Convert to dollars
+            # Safely get budget amount, default to 0
+            budget_amount_micros = budget.get('amount_micros', 0)
+            budget_amount = budget_amount_micros / 1000000 if budget_amount_micros else 0 
             
             # Check budget utilization
-            budget_utilization = campaign.get('budget_utilization', 0)
+            budget_utilization = campaign.get('budget_utilization_placeholder', 0) # Replace with actual calculation logic if needed
             
             # Campaigns with high budget utilization could benefit from budget increase
-            if budget_utilization > 0.9:
+            if budget_utilization > 0.9 and budget_amount > 0: # Avoid suggesting increase for $0 budget
                 suggestions["budget_allocation"].append({
                     "type": "increase_budget",
                     "entity_type": "CAMPAIGN",
@@ -724,6 +922,10 @@ class InsightsService:
         keywords = ad_group_data.get("keywords", [])
         campaigns = campaign_data.get("campaigns", [])
         
+        if not ad_groups:
+             logger.info("Skipping ad group suggestion analysis: No ad group data available.")
+             return suggestions
+             
         # Create lookup maps for efficient access
         campaign_map = {campaign.get('id', ''): campaign for campaign in campaigns}
         keyword_by_ad_group = {}
@@ -741,7 +943,7 @@ class InsightsService:
             ad_group_id = ad_group.get('id', '')
             ad_group_name = ad_group.get('name', 'Unknown')
             campaign_id = ad_group.get('campaign_id', '')
-            ad_group_status = ad_group.get('status', '')
+            ad_group_status = ad_group.get('status', 'UNKNOWN')
             
             # Skip non-active ad groups
             if ad_group_status != 'ENABLED':
@@ -1146,3 +1348,32 @@ class InsightsService:
                     })
         
         return opportunities 
+
+# Helper function for anomaly detection
+def _is_significant_anomaly(anomaly: Dict[str, Any]) -> bool:
+    """
+    Determine if an anomaly is significant enough to report.
+    
+    Args:
+        anomaly: Anomaly data dictionary
+        
+    Returns:
+        True if the anomaly is significant, False otherwise
+    """
+    metric = anomaly.get("metric", "")
+    current_value = anomaly.get("current_value", 0)
+    change_pct = anomaly.get("change_pct", 0)
+    
+    # Different thresholds for different metrics
+    if metric == "impressions" and current_value < 100 and change_pct < 0.5:
+        return False
+    if metric == "clicks" and current_value < 10 and change_pct < 0.5:
+        return False
+    if metric == "cost" and current_value < 5 and change_pct < 0.3:
+        return False
+    if (metric == "ctr" or metric == "conversion_rate") and change_pct < 0.2:
+        return False
+    if metric == "conversions" and current_value < 2 and change_pct < 0.5:
+        return False
+        
+    return True 

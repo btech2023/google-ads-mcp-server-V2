@@ -54,6 +54,7 @@ Profile statistics:
         3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
         3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
         2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
@@ -81,7 +82,6 @@ Profile statistics:
         5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:356(_get)
         5    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:361(_set)
         5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
-        3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
         3    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:2597(__init__)
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
         3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
@@ -148,11 +148,11 @@ Profile statistics:
         5    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
         3    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFDCD0A28A0}
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1170(_mock_call)
-        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
         3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
-        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
-        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:609(__get_side_effect)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:571(__get_return_value)
         1    0.000    0.000    0.000    0.000 C:\Users\bjorn.hansen\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:1157(_mock_check_sig)
 
 

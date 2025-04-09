@@ -3,8 +3,10 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from google_ads.client import GoogleAdsService
-from google_ads.keywords import KeywordService
+from google_ads_mcp_server.google_ads.client import GoogleAdsService
+from google_ads_mcp_server.google_ads.keywords import KeywordService
+import unittest
+from unittest.mock import patch, AsyncMock
 
 # Set up logging
 logging.basicConfig(
@@ -55,7 +57,7 @@ async def test_keyword_service():
             
             # First, get the ad groups to find one for testing
             print("\nGetting ad groups to find one for keyword testing...")
-            from google_ads.ad_groups import AdGroupService
+            from google_ads_mcp_server.google_ads.ad_groups import AdGroupService
             ad_group_service = AdGroupService(google_ads_service)
             ad_groups = await ad_group_service.get_ad_groups(customer_id)
             
@@ -122,7 +124,7 @@ async def test_keyword_service():
         
         # Test search term functionality
         print("\nTesting search term functionality...")
-        from google_ads.search_terms import SearchTermService
+        from google_ads_mcp_server.google_ads.search_terms import SearchTermService
         search_term_service = SearchTermService(google_ads_service)
         
         search_terms = await search_term_service.get_search_terms(

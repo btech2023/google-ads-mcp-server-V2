@@ -12,6 +12,27 @@ from typing import List, Dict, Any, Optional
 from google.ads.googleads.client import GoogleAdsClient as GoogleAdsAPIClient
 from google.ads.googleads.errors import GoogleAdsException
 
+# Import utilities
+from google_ads_mcp_server.utils.logging import get_logger
+from google_ads_mcp_server.utils.validation import (
+    validate_customer_id,
+    validate_not_empty_string,
+    validate_date_format,
+    validate_date_range,
+    validate_positive_integer,
+    validate_budget_id # Assuming exists
+)
+from google_ads_mcp_server.utils.error_handler import (
+    handle_exception,
+    handle_google_ads_exception,
+    CATEGORY_API_ERROR,
+    CATEGORY_CONFIG,
+    CATEGORY_BUSINESS_LOGIC,
+    SEVERITY_ERROR,
+    SEVERITY_WARNING
+)
+from google_ads_mcp_server.utils.formatting import clean_customer_id, micros_to_currency
+
 class GoogleAdsClientError(Exception):
     """Custom exception for Google Ads client errors."""
     pass
@@ -23,7 +44,8 @@ class GoogleAdsClient:
         """
         Initialize the Google Ads service.
         """
-        self.logger = logging.getLogger("google-ads-service")
+        # Use get_logger for consistency
+        self.logger = get_logger("google-ads-client-base") 
         
         # Load credentials from environment variables
         self.developer_token = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN")
@@ -33,16 +55,33 @@ class GoogleAdsClient:
         self.login_customer_id = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
         self.client_customer_id = os.environ.get("GOOGLE_ADS_CLIENT_CUSTOMER_ID") or self.login_customer_id
         
+        context = {"method": "__init__"}
+
         # Validate credentials
-        if not all([self.developer_token, self.client_id, self.client_secret, 
-                    self.refresh_token, self.login_customer_id]):
+        # Use specific checks for better error messages
+        if not validate_not_empty_string(self.developer_token, "GOOGLE_ADS_DEVELOPER_TOKEN") or \
+           not validate_not_empty_string(self.client_id, "GOOGLE_ADS_CLIENT_ID") or \
+           not validate_not_empty_string(self.client_secret, "GOOGLE_ADS_CLIENT_SECRET") or \
+           not validate_not_empty_string(self.refresh_token, "GOOGLE_ADS_REFRESH_TOKEN") or \
+           not validate_not_empty_string(self.login_customer_id, "GOOGLE_ADS_LOGIN_CUSTOMER_ID"): 
+            # Log detailed error before raising general one
+            error_details = handle_exception(ValueError("Missing required Google Ads API credentials from environment variables."), context=context, category=CATEGORY_CONFIG)
+            self.logger.error(error_details.message) 
             raise GoogleAdsClientError("Missing required Google Ads API credentials")
         
-        # Remove any dashes from customer IDs
-        if self.login_customer_id:
-            self.login_customer_id = self.login_customer_id.replace("-", "")
-        if self.client_customer_id:
-            self.client_customer_id = self.client_customer_id.replace("-", "")
+        # Validate and clean customer IDs
+        try:
+            if not validate_customer_id(self.login_customer_id):
+                raise ValueError(f"Invalid login_customer_id format: {self.login_customer_id}")
+            self.login_customer_id = clean_customer_id(self.login_customer_id)
+            
+            if not validate_customer_id(self.client_customer_id):
+                raise ValueError(f"Invalid client_customer_id format: {self.client_customer_id}")
+            self.client_customer_id = clean_customer_id(self.client_customer_id)
+        except ValueError as ve:
+            error_details = handle_exception(ve, context=context, category=CATEGORY_CONFIG)
+            self.logger.error(f"Customer ID validation failed during init: {error_details.message}")
+            raise GoogleAdsClientError(f"Invalid Customer ID provided in environment: {ve}") from ve
         
         try:
             # Initialize the Google Ads client
@@ -58,8 +97,11 @@ class GoogleAdsClient:
             self.logger.info(f"Default client_customer_id for queries: {self.client_customer_id}")
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize GoogleAdsClient: {str(e)}")
-            raise GoogleAdsClientError(f"Google Ads client initialization failed: {str(e)}")
+            # Use error handler for logging
+            error_details = handle_exception(e, context=context, category=CATEGORY_CONFIG)
+            self.logger.error(f"Failed to initialize GoogleAdsClient: {error_details.message}")
+            # Still raise custom error, but wrap original
+            raise GoogleAdsClientError(f"Google Ads client initialization failed: {error_details.message}") from e
     
     def _validate_customer_id(self, customer_id: Optional[str] = None) -> str:
         """
@@ -97,9 +139,11 @@ class GoogleAdsClient:
         Returns:
             List of accessible accounts with their IDs and names
         """
+        context = {"method": "list_accessible_accounts", "login_customer_id": self.login_customer_id}
         try:
             # Ensure we're using an MCC account
-            customer_id = self._validate_customer_id(self.login_customer_id)
+            # login_customer_id already validated in __init__
+            customer_id = self.login_customer_id 
             
             # Get the CustomerService
             customer_service = self.client.get_service("CustomerService")
@@ -125,20 +169,19 @@ class GoogleAdsClient:
                     # Log error but continue with other accounts
                     self.logger.warning(f"Could not access details for account {account_id}: {ex}")
             
-            self.logger.info(f"Retrieved {len(accounts)} accessible accounts")
+            self.logger.info(f"Retrieved {len(accounts)} accessible accounts for MCC {customer_id}")
             
             return accounts
             
         except GoogleAdsException as ex:
-            self.logger.error(f"Failed to list accessible accounts: {ex}")
-            error_details = []
-            for error in ex.failure.errors:
-                error_details.append(f"{error.error_code.name}: {error.message}")
-            error_message = "Google Ads API errors:\n" + "\n".join(error_details)
-            raise GoogleAdsClientError(error_message)
+            # Use error handler for consistent logging
+            error_details = handle_google_ads_exception(ex, context=context)
+            self.logger.error(f"Failed to list accessible accounts: {error_details.message}")
+            raise GoogleAdsClientError(f"Failed to list accessible accounts: {error_details.original_message or error_details.message}") from ex
         except Exception as e:
-            self.logger.error(f"Unexpected error listing accessible accounts: {str(e)}")
-            raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
+            error_details = handle_exception(e, context=context)
+            self.logger.error(f"Unexpected error listing accessible accounts: {error_details.message}")
+            raise GoogleAdsClientError(f"Unexpected error: {error_details.message}") from e
     
     async def get_campaigns(self, start_date: str, end_date: str, customer_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -152,80 +195,87 @@ class GoogleAdsClient:
         Returns:
             List of campaign data dictionaries
         """
-        # Validate the customer ID
+        context = {"start_date": start_date, "end_date": end_date, "customer_id": customer_id, "method": "get_campaigns"}
         try:
-            validated_customer_id = self._validate_customer_id(customer_id)
-        except GoogleAdsClientError as e:
-            self.logger.error(f"Customer ID validation failed: {str(e)}")
-            raise
+            # Validate Customer ID
+            customer_id_to_use = customer_id or self.client_customer_id
+            if not customer_id_to_use:
+                raise ValueError("No customer ID provided and no default available.")
+            if not validate_customer_id(customer_id_to_use):
+                 raise ValueError(f"Invalid customer ID format: {customer_id_to_use}")
+            cleaned_customer_id = clean_customer_id(customer_id_to_use)
+            context["customer_id"] = cleaned_customer_id # Update context
+
+            # Validate Dates
+            if not validate_date_format(start_date):
+                raise ValueError(f"Invalid start_date format: {start_date}")
+            if not validate_date_format(end_date):
+                raise ValueError(f"Invalid end_date format: {end_date}")
+            if not validate_date_range(start_date, end_date):
+                raise ValueError(f"Invalid date range: {start_date} to {end_date}")
             
-        query = f"""
-            SELECT
-                campaign.id,
-                campaign.name,
-                campaign.status,
-                campaign.advertising_channel_type,
-                metrics.impressions,
-                metrics.clicks,
-                metrics.cost_micros,
-                metrics.conversions,
-                metrics.conversions_value
-            FROM campaign
-            WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
-            ORDER BY campaign.id
-        """
-        
-        self.logger.info(f"Executing query for customer ID {validated_customer_id}, date range {start_date} to {end_date}")
-        try:
-            # Get Google Ads service
-            ga_service = self.client.get_service("GoogleAdsService")
+            query = f"""
+                SELECT
+                    campaign.id,
+                    campaign.name,
+                    campaign.status,
+                    campaign.advertising_channel_type,
+                    metrics.impressions,
+                    metrics.clicks,
+                    metrics.cost_micros,
+                    metrics.conversions,
+                    metrics.conversions_value
+                FROM campaign
+                WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+                ORDER BY campaign.id
+            """
             
-            # Execute the query
-            response = ga_service.search(
-                customer_id=validated_customer_id,
-                query=query,
-                retry=None  # Using default retry strategy
-            )
-            
-            # Process the results
-            campaigns = []
-            for row in response:
-                campaign = {
-                    "id": row.campaign.id,
-                    "name": row.campaign.name,
-                    "status": row.campaign.status.name,
-                    "channel_type": row.campaign.advertising_channel_type.name,
-                    "impressions": row.metrics.impressions,
-                    "clicks": row.metrics.clicks,
-                    "cost": row.metrics.cost_micros / 1000000,  # Convert micros to dollars
-                    "conversions": row.metrics.conversions,
-                    "conversion_value": row.metrics.conversions_value
-                }
-                campaigns.append(campaign)
-            
-            self.logger.info(f"Retrieved {len(campaigns)} campaigns for customer ID {validated_customer_id}")
-            
-            return campaigns
-            
-        except GoogleAdsException as ex:
-            self.logger.error(f"Google Ads API request failed for customer ID {validated_customer_id}: {ex}")
-            error_details = []
-            for error in ex.failure.errors:
-                error_details.append(f"{error.error_code.name}: {error.message}")
+            self.logger.info(f"Executing campaign query for customer ID {cleaned_customer_id}, date range {start_date} to {end_date}")
+            try:
+                # Get Google Ads service
+                ga_service = self.client.get_service("GoogleAdsService")
                 
-                # Provide more helpful error messages for common issues
-                if "CUSTOMER_NOT_FOUND" in error.error_code.name:
-                    error_details.append("The specified customer ID was not found or you don't have access to it.")
-                elif "CUSTOMER_NOT_ENABLED" in error.error_code.name:
-                    error_details.append("The customer account is not enabled for API access.")
-                elif "NOT_ADS_USER" in error.error_code.name:
-                    error_details.append("The login customer specified in the config is not a valid Ads user.")
-                    
-            error_message = "Google Ads API errors:\n" + "\n".join(error_details)
-            raise GoogleAdsClientError(error_message)
-        except Exception as e:
-            self.logger.error(f"Unexpected error during Google Ads API request for customer ID {validated_customer_id}: {str(e)}")
-            raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
+                # Execute the query
+                response = ga_service.search(
+                    customer_id=cleaned_customer_id,
+                    query=query,
+                    retry=None  # Using default retry strategy
+                )
+                
+                # Process the results
+                campaigns = []
+                for row in response:
+                    campaign = {
+                        "id": row.campaign.id,
+                        "name": row.campaign.name,
+                        "status": row.campaign.status.name,
+                        "channel_type": row.campaign.advertising_channel_type.name,
+                        "impressions": row.metrics.impressions,
+                        "clicks": row.metrics.clicks,
+                        "cost_micros": row.metrics.cost_micros,
+                        "cost": micros_to_currency(row.metrics.cost_micros),
+                        "conversions": row.metrics.conversions,
+                        "conversion_value": row.metrics.conversions_value
+                    }
+                    campaigns.append(campaign)
+                
+                self.logger.info(f"Retrieved {len(campaigns)} campaigns for customer ID {cleaned_customer_id}")
+                
+                return campaigns
+                
+            except GoogleAdsException as ex:
+                error_details = handle_google_ads_exception(ex, context=context)
+                self.logger.error(f"Google Ads API request failed for customer ID {cleaned_customer_id}: {error_details.message}")
+                raise GoogleAdsClientError(f"Google Ads API error: {error_details.original_message or error_details.message}") from ex
+            except Exception as e:
+                error_details = handle_exception(e, context=context)
+                self.logger.error(f"Unexpected error during Google Ads API request for customer ID {cleaned_customer_id}: {error_details.message}")
+                raise GoogleAdsClientError(f"Unexpected error: {error_details.message}") from e
+            
+        except ValueError as ve:
+            error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_BUSINESS_LOGIC)
+            self.logger.warning(f"Validation error getting campaigns: {error_details.message}")
+            raise GoogleAdsClientError(f"Invalid input: {error_details.message}") from ve
 
     async def get_account_summary(self, start_date: str, end_date: str, customer_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -239,93 +289,107 @@ class GoogleAdsClient:
         Returns:
             Dictionary with account summary metrics
         """
-        # Validate the customer ID
+        context = {"start_date": start_date, "end_date": end_date, "customer_id": customer_id, "method": "get_account_summary"}
         try:
-            validated_customer_id = self._validate_customer_id(customer_id)
-        except GoogleAdsClientError as e:
-            self.logger.error(f"Customer ID validation failed: {str(e)}")
-            raise
-        
-        query = f"""
-            SELECT
-                metrics.impressions,
-                metrics.clicks,
-                metrics.cost_micros,
-                metrics.conversions,
-                metrics.conversions_value
-            FROM customer
-            WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
-        """
-        
-        try:
-            # Get Google Ads service
-            ga_service = self.client.get_service("GoogleAdsService")
+            # Validate Customer ID
+            customer_id_to_use = customer_id or self.client_customer_id
+            if not customer_id_to_use:
+                raise ValueError("No customer ID provided and no default available.")
+            if not validate_customer_id(customer_id_to_use):
+                 raise ValueError(f"Invalid customer ID format: {customer_id_to_use}")
+            cleaned_customer_id = clean_customer_id(customer_id_to_use)
+            context["customer_id"] = cleaned_customer_id # Update context
+
+            # Validate Dates
+            if not validate_date_format(start_date):
+                raise ValueError(f"Invalid start_date format: {start_date}")
+            if not validate_date_format(end_date):
+                raise ValueError(f"Invalid end_date format: {end_date}")
+            if not validate_date_range(start_date, end_date):
+                raise ValueError(f"Invalid date range: {start_date} to {end_date}")
             
-            # Execute the query
-            response = ga_service.search(
-                customer_id=validated_customer_id,
-                query=query
-            )
+            query = f"""
+                SELECT
+                    metrics.impressions,
+                    metrics.clicks,
+                    metrics.cost_micros,
+                    metrics.conversions,
+                    metrics.conversions_value
+                FROM customer
+                WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+            """
             
-            # Process and aggregate the results
-            total_impressions = 0
-            total_clicks = 0
-            total_cost_micros = 0
-            total_conversions = 0
-            total_conversion_value = 0
-            
-            for row in response:
-                total_impressions += row.metrics.impressions
-                total_clicks += row.metrics.clicks
-                total_cost_micros += row.metrics.cost_micros
-                total_conversions += row.metrics.conversions
-                total_conversion_value += row.metrics.conversions_value
-            
-            # Convert to summary dictionary
-            total_cost = total_cost_micros / 1000000  # Convert micros to dollars
-            
-            # Calculate derived metrics
-            ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
-            cpc = (total_cost / total_clicks) if total_clicks > 0 else 0
-            conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
-            cost_per_conversion = (total_cost / total_conversions) if total_conversions > 0 else 0
-            
-            summary = {
-                "customer_id": validated_customer_id,
-                "date_range": {
-                    "start_date": start_date,
-                    "end_date": end_date
-                },
-                "total_impressions": total_impressions,
-                "total_clicks": total_clicks,
-                "total_cost": total_cost,
-                "total_conversions": total_conversions,
-                "total_conversion_value": total_conversion_value,
-                "ctr": ctr,
-                "cpc": cpc,
-                "conversion_rate": conversion_rate,
-                "cost_per_conversion": cost_per_conversion
-            }
-            
-            return summary
-            
-        except GoogleAdsException as ex:
-            self.logger.error(f"Google Ads API request failed for customer ID {validated_customer_id}: {ex}")
-            error_details = []
-            for error in ex.failure.errors:
-                error_details.append(f"{error.error_code.name}: {error.message}")
+            self.logger.info(f"Executing account summary query for customer ID {cleaned_customer_id}, date range {start_date} to {end_date}")
+            try:
+                # Get Google Ads service
+                ga_service = self.client.get_service("GoogleAdsService")
                 
-                # Provide more helpful error messages for common issues
-                if "CUSTOMER_NOT_FOUND" in error.error_code.name:
-                    error_details.append("The specified customer ID was not found or you don't have access to it.")
-                elif "CUSTOMER_NOT_ENABLED" in error.error_code.name:
-                    error_details.append("The customer account is not enabled for API access.")
-                    
-            error_message = "Google Ads API errors:\n" + "\n".join(error_details)
-            raise GoogleAdsClientError(error_message)
-        except Exception as e:
-            self.logger.error(f"Unexpected error during Google Ads API request for customer ID {validated_customer_id}: {str(e)}")
-            raise GoogleAdsClientError(f"Unexpected error: {str(e)}")
+                # Execute the query
+                response = ga_service.search(
+                    customer_id=cleaned_customer_id,
+                    query=query
+                )
+                
+                # Process and aggregate the results
+                total_impressions = 0
+                total_clicks = 0
+                total_cost_micros = 0
+                total_conversions = 0
+                total_conversion_value = 0
+                
+                for row in response:
+                    total_impressions += row.metrics.impressions
+                    total_clicks += row.metrics.clicks
+                    total_cost_micros += row.metrics.cost_micros
+                    total_conversions += row.metrics.conversions
+                    total_conversion_value += row.metrics.conversions_value
+                
+                # Convert to summary dictionary
+                total_cost = micros_to_currency(total_cost_micros)
+                
+                # Calculate derived metrics
+                ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+                # Calculate CPC using micros for precision before formatting
+                cpc_micros = (total_cost_micros / total_clicks) if total_clicks > 0 else 0
+                conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
+                # Calculate CPA using micros
+                cost_per_conversion_micros = (total_cost_micros / total_conversions) if total_conversions > 0 else 0
+                
+                summary = {
+                    "customer_id": cleaned_customer_id,
+                    "date_range": {
+                        "start_date": start_date,
+                        "end_date": end_date
+                    },
+                    "total_impressions": total_impressions,
+                    "total_clicks": total_clicks,
+                    "total_cost": total_cost,
+                    "total_conversions": total_conversions,
+                    "total_conversion_value": total_conversion_value,
+                    "cost_micros": total_cost_micros,
+                    "ctr": ctr,
+                    "cpc_micros": cpc_micros,
+                    "cpc": micros_to_currency(cpc_micros),
+                    "conversion_rate": conversion_rate,
+                    "cost_per_conversion_micros": cost_per_conversion_micros,
+                    "cost_per_conversion": micros_to_currency(cost_per_conversion_micros)
+                }
+                
+                return summary
+                
+            except GoogleAdsException as ex:
+                error_details = handle_google_ads_exception(ex, context=context)
+                self.logger.error(f"Google Ads API request failed for customer ID {cleaned_customer_id}: {error_details.message}")
+                raise GoogleAdsClientError(f"Google Ads API error: {error_details.original_message or error_details.message}") from ex
+            except Exception as e:
+                error_details = handle_exception(e, context=context)
+                self.logger.error(f"Unexpected error during Google Ads API request for customer ID {cleaned_customer_id}: {error_details.message}")
+                raise GoogleAdsClientError(f"Unexpected error: {error_details.message}") from e
+            
+        except ValueError as ve:
+            error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_BUSINESS_LOGIC)
+            self.logger.warning(f"Validation error getting account summary: {error_details.message}")
+            raise GoogleAdsClientError(f"Invalid input: {error_details.message}") from ve
 
     async def update_campaign_budget(self, 
                                    budget_id: str, 
@@ -342,19 +406,28 @@ class GoogleAdsClient:
         Returns:
             Dictionary with updated budget information
         """
-        # Validate the customer ID
+        context = {"budget_id": budget_id, "amount_micros": amount_micros, "customer_id": customer_id, "method": "update_campaign_budget"}
         try:
-            validated_customer_id = self._validate_customer_id(customer_id)
-        except GoogleAdsClientError as e:
-            self.logger.error(f"Customer ID validation failed: {str(e)}")
-            raise
+            # Validate Customer ID
+            customer_id_to_use = customer_id or self.client_customer_id
+            if not customer_id_to_use:
+                raise ValueError("No customer ID provided and no default available.")
+            if not validate_customer_id(customer_id_to_use):
+                 raise ValueError(f"Invalid customer ID format: {customer_id_to_use}")
+            cleaned_customer_id = clean_customer_id(customer_id_to_use)
+            context["customer_id"] = cleaned_customer_id # Update context
+
+            # Validate budget ID and amount
+            if not validate_budget_id(budget_id):
+                 raise ValueError(f"Invalid budget_id format: {budget_id}")
+            if not validate_positive_integer(amount_micros):
+                 raise ValueError(f"amount_micros must be a positive integer: {amount_micros}")
             
-        try:
             # Get services
             campaign_budget_service = self.client.get_service("CampaignBudgetService")
             
             # Create the budget resource name
-            resource_name = campaign_budget_service.campaign_budget_path(validated_customer_id, budget_id)
+            resource_name = campaign_budget_service.campaign_budget_path(cleaned_customer_id, budget_id)
             
             # Create and configure the budget update operation
             campaign_budget_operation = self.client.get_type("CampaignBudgetOperation")
@@ -370,7 +443,7 @@ class GoogleAdsClient:
             
             # Send the update operation
             response = campaign_budget_service.mutate_campaign_budgets(
-                customer_id=validated_customer_id,
+                customer_id=cleaned_customer_id,
                 operations=[campaign_budget_operation]
             )
             
@@ -379,27 +452,22 @@ class GoogleAdsClient:
                 "budget_id": budget_id,
                 "resource_name": response.results[0].resource_name,
                 "amount_micros": amount_micros,
-                "amount_dollars": amount_micros / 1000000
+                "amount_formatted": micros_to_currency(amount_micros)
             }
             
-            self.logger.info(f"Updated budget {budget_id} for customer ID {validated_customer_id} to {amount_micros} micros (${amount_micros/1000000:.2f})")
+            self.logger.info(f"Updated budget {budget_id} for customer ID {cleaned_customer_id} to {amount_micros} micros ({micros_to_currency(amount_micros)})")
             
             return updated_budget
             
+        except ValueError as ve:
+            error_details = handle_exception(ve, context=context, severity=SEVERITY_WARNING, category=CATEGORY_BUSINESS_LOGIC)
+            self.logger.warning(f"Validation error updating campaign budget: {error_details.message}")
+            raise GoogleAdsClientError(f"Invalid input: {error_details.message}") from ve
         except GoogleAdsException as ex:
-            self.logger.error(f"Google Ads API request failed for customer ID {validated_customer_id}: {ex}")
-            error_details = []
-            for error in ex.failure.errors:
-                error_details.append(f"{error.error_code.name}: {error.message}")
-                
-                # Provide more helpful error messages for common issues
-                if "CUSTOMER_NOT_FOUND" in error.error_code.name:
-                    error_details.append("The specified customer ID was not found or you don't have access to it.")
-                elif "CAMPAIGN_BUDGET_NOT_FOUND" in error.error_code.name:
-                    error_details.append(f"Budget with ID {budget_id} was not found in this account.")
-                    
-            error_message = "Google Ads API errors:\n" + "\n".join(error_details)
-            raise GoogleAdsClientError(error_message)
+            error_details = handle_google_ads_exception(ex, context=context)
+            self.logger.error(f"Google Ads API request failed for customer ID {cleaned_customer_id}: {error_details.message}")
+            raise GoogleAdsClientError(f"Google Ads API error: {error_details.original_message or error_details.message}") from ex
         except Exception as e:
-            self.logger.error(f"Unexpected error during Google Ads API request for customer ID {validated_customer_id}: {str(e)}")
-            raise GoogleAdsClientError(f"Unexpected error: {str(e)}") 
+            error_details = handle_exception(e, context=context)
+            self.logger.error(f"Unexpected error during Google Ads API request for customer ID {cleaned_customer_id}: {error_details.message}")
+            raise GoogleAdsClientError(f"Unexpected error: {error_details.message}") from e 

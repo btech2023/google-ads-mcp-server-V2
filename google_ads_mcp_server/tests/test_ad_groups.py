@@ -3,8 +3,10 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from google_ads.client import GoogleAdsService
-from google_ads.ad_groups import AdGroupService
+from google_ads_mcp_server.google_ads.client import GoogleAdsService
+from google_ads_mcp_server.google_ads.ad_groups import AdGroupService
+import unittest
+from unittest.mock import patch, AsyncMock
 
 # Set up logging
 logging.basicConfig(

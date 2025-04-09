@@ -4,13 +4,25 @@ Cache Manager Module
 This module provides functionality for caching API responses and other data.
 """
 
-import logging
 import json
 import hashlib
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
-logger = logging.getLogger(__name__)
+# Import utility modules
+from google_ads_mcp_server.utils.error_handler import (
+    handle_exception,
+    SEVERITY_WARNING,
+    CATEGORY_DATABASE
+)
+from google_ads_mcp_server.utils.validation import (
+    validate_non_empty_string,
+    validate_non_negative_number
+)
+from google_ads_mcp_server.utils.logging import get_logger
+
+# Get logger
+logger = get_logger(__name__)
 
 class CacheEntry:
     """Class representing a cached response."""
@@ -47,6 +59,15 @@ class CacheManager:
             db_manager: Database manager instance
             default_ttl: Default cache time-to-live in seconds (default: 1 hour)
         """
+        # Validate inputs
+        validation_errors = []
+        validate_non_negative_number(default_ttl, "default_ttl", validation_errors)
+        
+        if validation_errors:
+            error_message = f"Validation errors in CacheManager initialization: {'; '.join(validation_errors)}"
+            logger.error(error_message)
+            raise ValueError(error_message)
+            
         self.db_manager = db_manager
         self.default_ttl = default_ttl
         self.memory_cache = {}  # In-memory cache dictionary
@@ -64,18 +85,38 @@ class CacheManager:
         Returns:
             A unique string key for caching
         """
-        # Create a representation of the parameters
-        params_repr = {
-            "args": args,
-            "kwargs": kwargs
-        }
-        
-        # Convert to a stable JSON string and hash it
-        json_str = json.dumps(params_repr, sort_keys=True)
-        params_hash = hashlib.md5(json_str.encode()).hexdigest()
-        
-        # Create the full cache key with prefix
-        return f"{prefix}:{params_hash}"
+        try:
+            # Validate inputs
+            validation_errors = []
+            validate_non_empty_string(prefix, "prefix", validation_errors)
+            
+            if validation_errors:
+                error_message = f"Validation errors in generate_cache_key: {'; '.join(validation_errors)}"
+                logger.warning(error_message)
+                raise ValueError(error_message)
+                
+            # Create a representation of the parameters
+            params_repr = {
+                "args": args,
+                "kwargs": kwargs
+            }
+            
+            # Convert to a stable JSON string and hash it
+            json_str = json.dumps(params_repr, sort_keys=True)
+            params_hash = hashlib.md5(json_str.encode()).hexdigest()
+            
+            # Create the full cache key with prefix
+            return f"{prefix}:{params_hash}"
+        except Exception as e:
+            # Handle exception with proper context
+            error_details = handle_exception(
+                e,
+                context={"prefix": prefix, "args_count": len(args), "kwargs_count": len(kwargs)},
+                severity=SEVERITY_WARNING,
+                category=CATEGORY_DATABASE
+            )
+            logger.error(f"Error generating cache key: {error_details.message}")
+            raise ValueError(f"Failed to generate cache key: {str(e)}")
     
     def get(self, cache_key: str) -> Optional[Any]:
         """
@@ -87,17 +128,26 @@ class CacheManager:
         Returns:
             The cached data or None if not found or expired
         """
-        # First check memory cache
-        entry = self.memory_cache.get(cache_key)
-        if entry is not None:
-            if not entry.is_expired():
-                logger.debug(f"Memory cache hit for key: {cache_key}")
-                return entry.data
-            # Remove expired entry
-            del self.memory_cache[cache_key]
-        
-        # Then check database cache
         try:
+            # Validate inputs
+            validation_errors = []
+            validate_non_empty_string(cache_key, "cache_key", validation_errors)
+            
+            if validation_errors:
+                error_message = f"Validation errors in cache get: {'; '.join(validation_errors)}"
+                logger.warning(error_message)
+                return None
+                
+            # First check memory cache
+            entry = self.memory_cache.get(cache_key)
+            if entry is not None:
+                if not entry.is_expired():
+                    logger.debug(f"Memory cache hit for key: {cache_key}")
+                    return entry.data
+                # Remove expired entry
+                del self.memory_cache[cache_key]
+            
+            # Then check database cache
             data_json = self.db_manager.get_kpi_data(cache_key)
             if data_json:
                 logger.debug(f"Database cache hit for key: {cache_key}")
@@ -108,11 +158,19 @@ class CacheManager:
                 self.memory_cache[cache_key] = CacheEntry(data, expiry)
                 
                 return data
+            
+            logger.debug(f"Cache miss for key: {cache_key}")
+            return None
         except Exception as e:
-            logger.error(f"Error retrieving from cache: {e}")
-        
-        logger.debug(f"Cache miss for key: {cache_key}")
-        return None
+            # Handle exception with proper context
+            error_details = handle_exception(
+                e,
+                context={"cache_key": cache_key},
+                severity=SEVERITY_WARNING,
+                category=CATEGORY_DATABASE
+            )
+            logger.error(f"Error retrieving from cache: {error_details.message}")
+            return None
     
     def set(self, cache_key: str, data: Any, ttl: Optional[int] = None) -> bool:
         """
@@ -126,10 +184,21 @@ class CacheManager:
         Returns:
             True if successful, False otherwise
         """
-        if ttl is None:
-            ttl = self.default_ttl
-            
         try:
+            # Validate inputs
+            validation_errors = []
+            validate_non_empty_string(cache_key, "cache_key", validation_errors)
+            if ttl is not None:
+                validate_non_negative_number(ttl, "ttl", validation_errors)
+                
+            if validation_errors:
+                error_message = f"Validation errors in cache set: {'; '.join(validation_errors)}"
+                logger.warning(error_message)
+                return False
+                
+            if ttl is None:
+                ttl = self.default_ttl
+                
             # Store in memory cache
             expiry = time.time() + ttl
             self.memory_cache[cache_key] = CacheEntry(data, expiry)
@@ -162,7 +231,14 @@ class CacheManager:
             logger.debug(f"Data cached with key: {cache_key}, TTL: {ttl}s")
             return True
         except Exception as e:
-            logger.error(f"Error storing in cache: {e}")
+            # Handle exception with proper context
+            error_details = handle_exception(
+                e,
+                context={"cache_key": cache_key, "ttl": ttl},
+                severity=SEVERITY_WARNING,
+                category=CATEGORY_DATABASE
+            )
+            logger.error(f"Error storing in cache: {error_details.message}")
             return False
     
     def clear(self, prefix: Optional[str] = None) -> bool:
@@ -176,6 +252,16 @@ class CacheManager:
             True if successful, False otherwise
         """
         try:
+            # Validate inputs if prefix is provided
+            if prefix is not None:
+                validation_errors = []
+                validate_non_empty_string(prefix, "prefix", validation_errors)
+                
+                if validation_errors:
+                    error_message = f"Validation errors in cache clear: {'; '.join(validation_errors)}"
+                    logger.warning(error_message)
+                    return False
+            
             if prefix:
                 # Clear memory cache entries with the prefix
                 keys_to_remove = [k for k in self.memory_cache.keys() if k.startswith(f"{prefix}:")]
@@ -192,5 +278,12 @@ class CacheManager:
             
             return True
         except Exception as e:
-            logger.error(f"Error clearing cache: {e}")
+            # Handle exception with proper context
+            error_details = handle_exception(
+                e,
+                context={"prefix": prefix},
+                severity=SEVERITY_WARNING,
+                category=CATEGORY_DATABASE
+            )
+            logger.error(f"Error clearing cache: {error_details.message}")
             return False

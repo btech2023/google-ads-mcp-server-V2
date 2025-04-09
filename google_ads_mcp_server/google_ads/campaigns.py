@@ -7,13 +7,31 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+# Import utility functions
+from google_ads_mcp_server.utils.validation import (
+    validate_customer_id,
+    validate_date_format,
+    validate_date_range
 )
-logger = logging.getLogger(__name__)
+from google_ads_mcp_server.utils.error_handler import (
+    handle_exception,
+    handle_google_ads_exception,
+    create_error_response,
+    ErrorDetails,
+    CATEGORY_API_ERROR
+)
+from google_ads_mcp_server.utils.formatting import (
+    format_customer_id,
+    clean_customer_id,
+    micros_to_currency,
+    format_percentage,
+    format_date,
+    format_number
+)
+
+# Import logger utility
+from google_ads_mcp_server.utils.logging import get_logger
+logger = get_logger(__name__)
 
 # Load environment variables from .env file
 try:
@@ -55,11 +73,14 @@ class GoogleAdsClient:
         # Store customer IDs
         self.client_customer_id = None
         if client_customer_id:
-            # Remove hyphens if present
-            if '-' in client_customer_id:
-                client_customer_id = client_customer_id.replace('-', '')
-            self.client_customer_id = client_customer_id
-            logger.info(f"Using client customer ID: {self.client_customer_id}")
+            # Validate and clean customer ID
+            if not validate_customer_id(client_customer_id):
+                # Use ValueError for validation issues
+                raise ValueError(f"Invalid client customer ID format: {client_customer_id}")
+                
+            # Clean ID (remove hyphens)
+            self.client_customer_id = clean_customer_id(client_customer_id)
+            logger.info(f"Using client customer ID: {format_customer_id(self.client_customer_id)}")
         
         try:
             # Initialize with config file path
@@ -70,18 +91,21 @@ class GoogleAdsClient:
                 
             # Initialize with individual parameters
             if all([developer_token, client_id, client_secret, refresh_token, login_customer_id]):
-                # Clean login_customer_id if it contains hyphens
-                if login_customer_id and '-' in login_customer_id:
-                    login_customer_id = login_customer_id.replace('-', '')
-                    
-                logger.info(f"Initializing with login customer ID: {login_customer_id}")
+                # Validate and clean login customer ID
+                if not validate_customer_id(login_customer_id):
+                    # Use ValueError for validation issues
+                    raise ValueError(f"Invalid login customer ID format: {login_customer_id}")
+                
+                # Clean ID (remove hyphens)
+                clean_login_id = clean_customer_id(login_customer_id)                
+                logger.info(f"Initializing with login customer ID: {format_customer_id(clean_login_id)}")
                 
                 config = {
                     "developer_token": developer_token,
                     "client_id": client_id,
                     "client_secret": client_secret,
                     "refresh_token": refresh_token,
-                    "login_customer_id": login_customer_id,
+                    "login_customer_id": clean_login_id,
                     "use_proto_plus": True,
                 }
                 self.client = GoogleAdsSDKClient.load_from_dict(config)
@@ -96,25 +120,36 @@ class GoogleAdsClient:
                 and os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
             ):
                 login_id = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
-                # Clean login_customer_id if it contains hyphens
-                if login_id and '-' in login_id:
-                    login_id = login_id.replace('-', '')
+                
+                # Validate and clean login customer ID
+                if not validate_customer_id(login_id):
+                    # Use ValueError for validation issues
+                    raise ValueError(f"Invalid login customer ID format in environment: {login_id}")
+                
+                # Clean ID (remove hyphens)
+                clean_login_id = clean_customer_id(login_id)
                     
                 # If client_customer_id not provided in constructor, try from env
                 if not self.client_customer_id and os.environ.get("GOOGLE_ADS_CLIENT_CUSTOMER_ID"):
                     client_id = os.environ.get("GOOGLE_ADS_CLIENT_CUSTOMER_ID")
-                    if client_id and '-' in client_id:
-                        client_id = client_id.replace('-', '')
-                    self.client_customer_id = client_id
-                    logger.info(f"Using client customer ID from env: {self.client_customer_id}")
+                    
+                    # Validate and clean client customer ID
+                    if not validate_customer_id(client_id):
+                        # Use ValueError for validation issues
+                        raise ValueError(f"Invalid client customer ID format in environment: {client_id}")
+                    
+                    # Clean ID (remove hyphens)
+                    clean_client_id = clean_customer_id(client_id)
+                    self.client_customer_id = clean_client_id
+                    logger.info(f"Using client customer ID from env: {format_customer_id(clean_client_id)}")
                 
-                logger.info(f"Initializing with login customer ID from env: {login_id}")
+                logger.info(f"Initializing with login customer ID from env: {format_customer_id(clean_login_id)}")
                 config = {
                     "developer_token": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
                     "client_id": os.environ.get("GOOGLE_ADS_CLIENT_ID"),
                     "client_secret": os.environ.get("GOOGLE_ADS_CLIENT_SECRET"),
                     "refresh_token": os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
-                    "login_customer_id": login_id,
+                    "login_customer_id": clean_login_id,
                     "use_proto_plus": True,
                 }
                 self.client = GoogleAdsSDKClient.load_from_dict(config)
@@ -126,18 +161,29 @@ class GoogleAdsClient:
                 "as parameters, a config file path, or set environment variables."
             )
             
+        except GoogleAdsException as e:
+            # Use standardized error handling for Google Ads exceptions
+            error_details = handle_google_ads_exception(e, context={"method": "__init__"})
+            logger.error(f"Google Ads API Error: {error_details.message}")
+            raise GoogleAdsClientError(error_details.message) from e
         except Exception as e:
-            error_message = f"Failed to initialize Google Ads client: {str(e)}"
-            logger.error(error_message)
-            raise GoogleAdsClientError(error_message) from e
+            # Use standardized error handling for other exceptions
+            error_details = handle_exception(e, context={"method": "__init__"})
+            logger.error(f"Failed to initialize Google Ads client: {error_details.message}")
+            raise GoogleAdsClientError(error_details.message) from e
     
     def get_campaigns(self, date_range: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """Get campaign data for the specified date range."""
         try:
             # Determine customer ID to use
             customer_id = self.client_customer_id or os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
-            if '-' in customer_id:
-                customer_id = customer_id.replace('-', '')
+            
+            # Validate customer ID
+            if not validate_customer_id(customer_id):
+                raise ValueError(f"Invalid customer ID: {customer_id}")
+            
+            # Clean ID (remove hyphens)
+            customer_id = clean_customer_id(customer_id)
             
             # Get default date range if not provided
             if not date_range:
@@ -147,6 +193,16 @@ class GoogleAdsClient:
                     "start_date": start_date.strftime("%Y-%m-%d"),
                     "end_date": end_date.strftime("%Y-%m-%d")
                 }
+            
+            # Validate date range
+            if not validate_date_format(date_range["start_date"]):
+                raise ValueError(f"Invalid start date format: {date_range['start_date']}")
+            
+            if not validate_date_format(date_range["end_date"]):
+                raise ValueError(f"Invalid end date format: {date_range['end_date']}")
+                
+            if not validate_date_range(date_range["start_date"], date_range["end_date"]):
+                raise ValueError(f"Invalid date range: {date_range['start_date']} to {date_range['end_date']}")
             
             # Create Google Ads service and query
             google_ads_service = self.client.get_service("GoogleAdsService")
@@ -172,7 +228,7 @@ class GoogleAdsClient:
             search_request.customer_id = customer_id
             search_request.query = query
             
-            logger.info("Executing Google Ads query...")
+            logger.info(f"Executing Google Ads query for customer ID: {format_customer_id(customer_id)}")
             response = google_ads_service.search(search_request)
             
             # Process the results
@@ -188,55 +244,90 @@ class GoogleAdsClient:
                     "channel_type": campaign.advertising_channel_type.name,
                     "impressions": metrics.impressions,
                     "clicks": metrics.clicks,
-                    "cost": metrics.cost_micros / 1000000,  # Convert micros to dollars
+                    "cost": micros_to_currency(metrics.cost_micros),  # Use formatting utility
+                    "cost_micros": metrics.cost_micros,  # Keep raw value for calculations
                     "conversions": metrics.conversions,
                     "conversion_value": 0  # Default since this field is not available
                 })
             
+            logger.info(f"Retrieved {len(campaigns)} campaigns for customer {format_customer_id(customer_id)}")
             return campaigns
             
         except GoogleAdsException as ex:
-            logger.error("Google Ads API Error:")
-            for error in ex.failure.errors:
-                error_code_str = str(error.error_code)
-                logger.error(f"Error code: {error_code_str}")
-                logger.error(f"Error message: {error.message}")
-            raise
+            # Use standardized error handling for Google Ads exceptions
+            error_details = handle_google_ads_exception(ex, context={
+                "method": "get_campaigns",
+                "customer_id": customer_id,
+                "date_range": date_range
+            })
+            logger.error(f"Google Ads API Error: {error_details.message}")
+            raise GoogleAdsClientError(error_details.message) from ex
         except Exception as e:
-            logger.error(f"Error: {e}")
-            raise
+            # Use standardized error handling for other exceptions
+            # Check if it's a validation error we raised
+            if isinstance(e, ValueError):
+                 error_details = handle_exception(e, context={ "method": "get_campaigns", "customer_id": customer_id, "date_range": date_range }, severity=SEVERITY_WARNING, category=CATEGORY_BUSINESS_LOGIC)
+                 logger.warning(f"Validation error getting campaigns: {error_details.message}")
+                 raise e # Re-raise validation error directly
+                 
+            error_details = handle_exception(e, context={
+                "method": "get_campaigns",
+                "customer_id": customer_id,
+                "date_range": date_range
+            })
+            logger.error(f"Error getting campaigns: {error_details.message}")
+            raise GoogleAdsClientError(error_details.message) from e
     
     def get_account_summary(self, date_range: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """Get account summary metrics for the specified date range."""
-        campaigns = self.get_campaigns(date_range)
-        
-        # Calculate summary metrics
-        total_cost = sum(campaign["cost"] for campaign in campaigns)
-        total_clicks = sum(campaign["clicks"] for campaign in campaigns)
-        total_impressions = sum(campaign["impressions"] for campaign in campaigns)
-        total_conversions = sum(campaign["conversions"] for campaign in campaigns)
-        total_conversion_value = sum(campaign["conversion_value"] for campaign in campaigns)
-        
-        # Calculate derived metrics
-        ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
-        cpc = (total_cost / total_clicks) if total_clicks > 0 else 0
-        conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
-        cost_per_conversion = (total_cost / total_conversions) if total_conversions > 0 else 0
-        roas = (total_conversion_value / total_cost) if total_cost > 0 else 0
-        
-        return {
-            "total_cost": total_cost,
-            "total_clicks": total_clicks,
-            "total_impressions": total_impressions,
-            "total_conversions": total_conversions,
-            "total_conversion_value": total_conversion_value,
-            "ctr": ctr,
-            "cpc": cpc,
-            "conversion_rate": conversion_rate,
-            "cost_per_conversion": cost_per_conversion,
-            "roas": roas,
-            "date_range": date_range
-        }
+        try:
+            campaigns = self.get_campaigns(date_range)
+            
+            # Calculate summary metrics
+            total_cost_micros = sum(campaign["cost_micros"] for campaign in campaigns)
+            total_clicks = sum(campaign["clicks"] for campaign in campaigns)
+            total_impressions = sum(campaign["impressions"] for campaign in campaigns)
+            total_conversions = sum(campaign["conversions"] for campaign in campaigns)
+            total_conversion_value = sum(campaign["conversion_value"] for campaign in campaigns)
+            
+            # Calculate derived metrics
+            ctr = (total_clicks / total_impressions) if total_impressions > 0 else 0
+            cpc_micros = (total_cost_micros / total_clicks) if total_clicks > 0 else 0
+            conversion_rate = (total_conversions / total_clicks) if total_clicks > 0 else 0
+            cost_per_conversion_micros = (total_cost_micros / total_conversions) if total_conversions > 0 else 0
+            roas = (total_conversion_value / (total_cost_micros / 1000000)) if total_cost_micros > 0 else 0
+            
+            return {
+                "total_cost": micros_to_currency(total_cost_micros),
+                "total_cost_micros": total_cost_micros,
+                "total_clicks": format_number(total_clicks),
+                "total_clicks_raw": total_clicks,
+                "total_impressions": format_number(total_impressions),
+                "total_impressions_raw": total_impressions,
+                "total_conversions": format_number(total_conversions, 1),
+                "total_conversions_raw": total_conversions,
+                "total_conversion_value": micros_to_currency(total_conversion_value),
+                "total_conversion_value_raw": total_conversion_value,
+                "ctr": format_percentage(ctr),
+                "ctr_raw": ctr,
+                "cpc": micros_to_currency(cpc_micros),
+                "cpc_micros": cpc_micros,
+                "conversion_rate": format_percentage(conversion_rate),
+                "conversion_rate_raw": conversion_rate,
+                "cost_per_conversion": micros_to_currency(cost_per_conversion_micros),
+                "cost_per_conversion_micros": cost_per_conversion_micros,
+                "roas": f"{roas:.2f}",
+                "roas_raw": roas,
+                "date_range": date_range
+            }
+        except Exception as e:
+            # Use standardized error handling
+            error_details = handle_exception(e, context={
+                "method": "get_account_summary",
+                "date_range": date_range
+            })
+            logger.error(f"Error getting account summary: {error_details.message}")
+            raise GoogleAdsClientError(error_details.message) from e
     
     def close(self):
         """Close any resources."""
@@ -257,27 +348,27 @@ def format_summary_visualization(account_summary):
         "kpi_cards": [
             {
                 "title": "Cost",
-                "value": f"${account_summary['total_cost']:.2f}",
+                "value": account_summary['total_cost'],
                 "metric": "cost"
             },
             {
                 "title": "Conversions",
-                "value": f"{account_summary['total_conversions']:.1f}",
+                "value": account_summary['total_conversions'],
                 "metric": "conversions"
             },
             {
                 "title": "ROAS",
-                "value": f"{account_summary['roas']:.2f}",
+                "value": account_summary['roas'],
                 "metric": "roas"
             },
             {
                 "title": "CTR",
-                "value": f"{account_summary['ctr']:.2f}%",
+                "value": account_summary['ctr'],
                 "metric": "ctr"
             },
             {
                 "title": "Cost per Conversion",
-                "value": f"${account_summary['cost_per_conversion']:.2f}",
+                "value": account_summary['cost_per_conversion'],
                 "metric": "cpa"
             }
         ]
@@ -342,9 +433,9 @@ def main():
         print(json.dumps(result, indent=2))
         
     except Exception as e:
-        logger.error(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
+        # Use standardized error handling
+        error_details = handle_exception(e, context={"method": "main"})
+        logger.error(f"Error: {error_details.message}")
         return 1
     
     return 0
