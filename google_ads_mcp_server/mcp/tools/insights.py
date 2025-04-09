@@ -493,11 +493,11 @@ def register_insights_tools(mcp, google_ads_service, insights_service) -> None:
                             
                         # Add impact indicator
                         if impact == "HIGH":
-                            impact_indicator = "🔴"
+                            impact_indicator = "ðŸ”´"
                         elif impact == "MEDIUM":
-                            impact_indicator = "🟠"
+                            impact_indicator = "ðŸŸ "
                         else:
-                            impact_indicator = "🟢"
+                            impact_indicator = "ðŸŸ¢"
                             
                         report.append(f"{impact_indicator} {description}{entity_info}")
             
@@ -734,11 +734,11 @@ def register_insights_tools(mcp, google_ads_service, insights_service) -> None:
                             
                         # Add impact indicator
                         if impact == "HIGH":
-                            impact_indicator = "⭐⭐⭐"
+                            impact_indicator = "â­�â­�â­�"
                         elif impact == "MEDIUM":
-                            impact_indicator = "⭐⭐"
+                            impact_indicator = "â­�â­�"
                         else:
-                            impact_indicator = "⭐"
+                            impact_indicator = "â­�"
                             
                         report.append(f"{impact_indicator} {description}{entity_info}")
             

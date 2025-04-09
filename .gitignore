@@ -77,4 +77,13 @@ kubernetes/**/secret*.yaml
 
 # SDK Directories - these should be managed as dependencies, not in repo
 google-ads-python-sdk/
-mcp-python-sdk/ 
+mcp-python-sdk/
+
+# Backup files
+*.bak
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo 
