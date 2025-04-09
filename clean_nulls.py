@@ -1,41 +1,50 @@
-import sys
 import os
+import sys
+import chardet
+import glob
 
-def clean_file_null_bytes(file_path):
-    """Reads a file, removes null bytes, and writes it back."""
-    if not os.path.exists(file_path):
-        print(f"Error: File not found at {file_path}")
-        sys.exit(1)
-
-    try:
-        with open(file_path, 'rb') as f:
-            content_bytes = f.read()
-
-        original_length = len(content_bytes)
-        null_count = content_bytes.count(b'\x00')
-
-        if null_count == 0:
-            print(f"No null bytes found in {file_path}. File not modified.")
-            return
-
-        print(f"Found {null_count} null bytes in {file_path} (Original size: {original_length} bytes).")
-        cleaned_bytes = content_bytes.replace(b'\x00', b'')
-        cleaned_length = len(cleaned_bytes)
-        print(f"Cleaning file. New size: {cleaned_length} bytes.")
-
-        with open(file_path, 'wb') as f:
-            f.write(cleaned_bytes)
-
-        print(f"Successfully cleaned and wrote back {file_path}")
-
-    except Exception as e:
-        print(f"Error processing file {file_path}: {e}")
-        sys.exit(1)
+def clean_all_python_files():
+    """Find and clean all .py files in the current directory and subdirectories."""
+    # Find all Python files
+    all_py_files = glob.glob("**/*.py", recursive=True)
+    print(f"Found {len(all_py_files)} Python files")
+    
+    # Process each file
+    fixed_files = []
+    for filepath in all_py_files:
+        # Skip if it's a directory somehow
+        if os.path.isdir(filepath):
+            continue
+            
+        try:
+            # Read file in binary mode
+            with open(filepath, 'rb') as f:
+                content = f.read()
+                
+            # Check for null bytes
+            if b'\x00' in content:
+                print(f"Found null bytes in {filepath}")
+                
+                # Remove null bytes
+                cleaned = content.replace(b'\x00', b'')
+                
+                # Write cleaned content back
+                with open(filepath, 'wb') as f:
+                    f.write(cleaned)
+                    
+                fixed_files.append(filepath)
+                print(f"Cleaned null bytes from {filepath}")
+        except Exception as e:
+            print(f"Error processing {filepath}: {e}")
+    
+    if fixed_files:
+        print(f"\nCleaned {len(fixed_files)} files:")
+        for file in fixed_files:
+            print(f" - {file}")
+    else:
+        print("No files needed cleaning.")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python clean_nulls.py <file_path>")
-        sys.exit(1)
-
-    target_file = sys.argv[1]
-    clean_file_null_bytes(target_file) 
+    print("Scanning and cleaning all Python files for null bytes...")
+    clean_all_python_files()
+    print("Done.") 
