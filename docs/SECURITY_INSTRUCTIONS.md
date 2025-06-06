@@ -4,16 +4,14 @@ This document provides instructions for completing the secret detection and remo
 
 ## 1. Delete .env Files
 
-Since we cannot delete these files through the API, please manually delete the following .env files that contain real credentials:
+Since we cannot delete these files through the API, please manually delete the `.env` file that contains real credentials:
 
 - `/.env`
-- `/google-mcp-server/.env`
 
 You can do this with:
 
 ```bash
 rm .env
-rm google-mcp-server/.env
 ```
 
 ## 2. Amend the Current Commit
@@ -33,7 +31,7 @@ git push -f origin main
 
 ## 3. Rotate Your Credentials
 
-Since your credentials were exposed in the Git history and in the nova-authentication-plan.md file, you should:
+Since your credentials were exposed in the Git history, you should:
 
 1. Go to the Google Cloud Console
 2. Create new OAuth 2.0 credentials
@@ -90,11 +88,6 @@ This document provides instructions for maintaining a secure development environ
    # Edit .env with your real credentials
    ```
 
-2. For the google-mcp-server subdirectory:
-   ```bash
-   cp google-mcp-server/.env.example google-mcp-server/.env
-   # Edit with your real credentials
-   ```
 
 ## Preventing Credential Leaks
 
