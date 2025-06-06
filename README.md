@@ -92,6 +92,8 @@ Follow these steps to run the MCP server using a local Python virtual environmen
    ```bash
    pip install -r requirements.txt
    ```
+   OpenTelemetry dependencies are pinned to version 1.21.0 to avoid
+   resolver backtracking errors during installation.
 
 4. **Configure Google Ads credentials**
    - Go to the [Google Ads API Console](https://developers.google.com/google-ads/api/docs/first-call/oauth-cloud) and create OAuth2 credentials.
