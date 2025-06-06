@@ -310,3 +310,28 @@ def sanitize_input(
         value = regex.sub("", value)
 
     return value
+
+
+def validate_budget_id(budget_id: Union[int, str]) -> bool:
+    """Validate that a campaign budget ID is a positive integer.
+
+    Args:
+        budget_id: The budget ID to validate. Can be an ``int`` or a ``str`` of digits.
+
+    Returns:
+        ``True`` if ``budget_id`` represents a positive integer, otherwise ``False``.
+    """
+    if budget_id is None:
+        return False
+
+    if isinstance(budget_id, int):
+        return budget_id > 0
+
+    if isinstance(budget_id, str):
+        if not budget_id.isdigit():
+            logger.warning("Budget ID '%s' is not numeric", budget_id)
+            return False
+        return int(budget_id) > 0
+
+    logger.warning("Budget ID '%s' is not a string or integer", budget_id)
+    return False
