@@ -60,7 +60,7 @@ google_ads_mcp_server/
 ### Running the Server
 
 ```
-python main.py
+python -m google_ads_mcp_server.main
 ```
 
 This will start the server on the default port 8000. The MCP endpoint will be available at `/mcp`.

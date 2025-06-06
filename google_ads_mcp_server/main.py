@@ -5,12 +5,11 @@ Google Ads MCP Server - Main Entry Point
 This module serves as the entry point for the Google Ads MCP Server application.
 """
 
-import os
 import logging
-from config import config
-from server import create_server
-from health import setup_health_checks
-from mcp.handlers import register_mcp_handlers
+from .config import config
+from .server import create_server
+from .health import setup_health_checks
+from .mcp.handlers import register_mcp_handlers
 import uvicorn
 
 # Import logging utilities
