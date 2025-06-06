@@ -60,51 +60,62 @@ This repository implements the Project Quantum Pulse roadmap for enhanced Google
 
 ## Quick Start
 
+The following steps guide you through running the MCP server locally. These
+instructions assume minimal prior experience with Python or the Google Ads API.
+
 ### Local Development
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/google-ads-mcp.git
-   cd google-ads-mcp
+1. **Clone this repository**
+   ```bash
+   git clone https://github.com/yourusername/google-ads-mcp-server-V2.git
+   cd google-ads-mcp-server-V2
    ```
 
-2. Set up a virtual environment:
-   ```
+2. **Create and activate a virtual environment**
+   ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
+   # Linux / macOS
+   source .venv/bin/activate
+   # Windows
+   # .venv\Scripts\activate
    ```
 
-3. Install dependencies:
-   ```
+3. **Install required packages**
+   ```bash
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file with your Google Ads credentials:
-   ```
-   cp .env.example .env
-   # Edit .env file with your credentials
-   ```
+4. **Configure Google Ads credentials**
+   - Go to the [Google Ads API Console](https://developers.google.com/google-ads/api/docs/first-call/oauth-cloud) and create OAuth2 credentials.
+   - Generate a refresh token following the Google Ads instructions.
+   - Copy `.env.example` to `.env` and fill in the values you obtained:
+     ```bash
+     cp .env.example .env
+     # Edit .env with your developer token, client ID, client secret and refresh token
+     ```
 
-5. Run the server:
+5. **Start the server**
+   ```bash
+   python -m google_ads_mcp_server.main
    ```
-   python server.py
-   ```
+   The API will be available at `http://localhost:8000`. You can verify it is
+   running by visiting `http://localhost:8000/health` in your browser.
 
 ### Docker Deployment
 
-1. Build the Docker image:
-   ```
-   docker build -t google-ads-mcp:latest .
+1. **Build the Docker image**
+   ```bash
+   docker build -t google-ads-mcp:latest -f docker/Dockerfile .
    ```
 
-2. Run the container:
-   ```
+2. **Run the container**
+   ```bash
    docker run -p 8000:8000 --env-file .env google-ads-mcp:latest
    ```
 
-Alternatively, use docker-compose:
-   ```
-   docker-compose up -d
+3. **Or start via Docker&nbsp;Compose**
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d
    ```
 
 ## Configuration
@@ -117,14 +128,14 @@ The application supports different environments (dev, test, prod) with environme
 
 ## Claude Desktop Integration
 
-1. Configure Claude Desktop for the MCP server in your Claude Desktop App configuration:
+1. Configure Claude Desktop for the MCP server in your Claude Desktop App configuration. Replace `/path/to/project` with the folder where you cloned the repository:
    ```json
    {
        "mcpServers": {
            "google-ads": {
                "command": "python",
                "args": [
-                   "/absolute/path/to/server.py"
+                    "/path/to/project/google_ads_mcp_server/main.py"
                ]
            }
        }
