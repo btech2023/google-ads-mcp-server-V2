@@ -74,4 +74,4 @@ If you need to reinstall the Git hook:
 
 ## Note on Project Management Rules
 
-This system implements a simplified version of the project management rules defined in `.cursor/rules/project-managment-rules.mdc`, adapted to work with the current project structure. The primary focus is on monitoring file sizes and encouraging modularization, with optional error and solution logging for significant issues. 
+This system implements a simplified version of the project management rules defined in `.cursor/rules/project-management-rules.mdc`, adapted to work with the current project structure. The primary focus is on monitoring file sizes and encouraging modularization, with optional error and solution logging for significant issues.
