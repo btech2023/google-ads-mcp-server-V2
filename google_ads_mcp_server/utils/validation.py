@@ -174,6 +174,29 @@ def validate_numeric_range(
     return True
 
 
+def validate_positive_integer(value: Any) -> bool:
+    """Validate that ``value`` is a positive integer.
+
+    Args:
+        value: The value to validate.
+
+    Returns:
+        ``True`` if ``value`` is an ``int`` greater than ``0``.
+    """
+    if value is None:
+        return False
+
+    if not isinstance(value, int):
+        logger.warning("Value %s is not an integer", value)
+        return False
+
+    if value <= 0:
+        logger.warning("Value %s is not positive", value)
+        return False
+
+    return True
+
+
 def validate_string_length(
     text: str, min_length: int = 0, max_length: Optional[int] = None
 ) -> bool:
