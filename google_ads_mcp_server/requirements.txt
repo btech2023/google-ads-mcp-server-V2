@@ -3,7 +3,7 @@
 # Core dependencies
 # Install MCP directly from GitHub using modern PEP 508 format
 mcp @ git+https://github.com/modelcontextprotocol/python-sdk.git
-google-ads>=21.2.0
+google-ads>=21.3.0
 python-dotenv>=1.0.0
 fastapi>=0.103.1
 uvicorn>=0.23.2
@@ -29,9 +29,9 @@ pytest-asyncio>=0.21.1
 pytest-cov>=4.1.0
 
 # Monitoring and Observability
-opentelemetry-api>=1.19.0
-opentelemetry-sdk>=1.19.0
-opentelemetry-exporter-prometheus>=1.19.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-prometheus>=1.21.0
 opentelemetry-instrumentation-fastapi>=0.42b0
 opentelemetry-instrumentation-httpx>=0.42b0
 prometheus-client>=0.17.1
