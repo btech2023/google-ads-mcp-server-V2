@@ -58,12 +58,20 @@ This repository implements the Project Quantum Pulse roadmap for enhanced Google
 - Google Ads API credentials
 - Claude Desktop
 
-## Quick Start
+## Setup Overview
 
-The following steps guide you through running the MCP server locally. These
-instructions assume minimal prior experience with Python or the Google Ads API.
+This project can be run in several different environments. Choose the setup that best fits your workflow:
 
-### Local Development
+1. [Python Virtual Environment](#python-virtual-environment)
+2. [Docker](#docker)
+   - [Docker for Linux/macOS](#docker-for-linuxmacos)
+   - [Docker for Windows](#docker-for-windows)
+   - [Docker Compose](#docker-compose)
+3. [Kubernetes](#kubernetes-deployment)
+
+## Python Virtual Environment
+
+Follow these steps to run the MCP server using a local Python virtual environment:
 
 1. **Clone this repository**
    ```bash
@@ -77,7 +85,7 @@ instructions assume minimal prior experience with Python or the Google Ads API.
    # Linux / macOS
    source .venv/bin/activate
    # Windows
-   # .venv\Scripts\activate
+   .venv\Scripts\activate
    ```
 
 3. **Install required packages**
@@ -98,12 +106,13 @@ instructions assume minimal prior experience with Python or the Google Ads API.
    ```bash
    python -m google_ads_mcp_server.main
    ```
-   The API will be available at `http://localhost:8000`. You can verify it is
-   running by visiting `http://localhost:8000/health` in your browser.
+   Visit `http://localhost:8000/health` to confirm the server is running.
 
-### Docker Deployment
+## Docker
 
-1. **Build the Docker image**
+### Docker for Linux/macOS
+
+1. **Build the image**
    ```bash
    docker build -t google-ads-mcp:latest -f docker/Dockerfile .
    ```
@@ -113,10 +122,42 @@ instructions assume minimal prior experience with Python or the Google Ads API.
    docker run -p 8000:8000 --env-file .env google-ads-mcp:latest
    ```
 
-3. **Or start via Docker&nbsp;Compose**
-   ```bash
-   docker compose -f docker/docker-compose.yml up -d
+### Docker for Windows
+
+1. **Build the image**
+   ```powershell
+   docker build -t google-ads-mcp:latest -f docker/Dockerfile .
    ```
+
+2. **Run the container**
+   ```powershell
+   docker run -p 8000:8000 --env-file .env google-ads-mcp:latest
+   ```
+
+### Docker Compose
+
+Start all services defined in the compose file:
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+## Kubernetes Deployment
+
+This repository includes manifests for deploying the server to Kubernetes:
+
+- `kubernetes/dev/` - development environment
+- `kubernetes/test/` - test environment
+- `kubernetes/prod/` - production environment
+
+CI/CD pipelines are configured using GitHub Actions for automated testing, building and deployment.
+
+Apply the manifests with `kubectl` for your chosen environment:
+
+```bash
+kubectl apply -f kubernetes/dev
+```
+
+Replace `dev` with `test` or `prod` to target another environment.
 
 ## Configuration
 
@@ -526,15 +567,6 @@ MEDIUM: Create additional ad variations for ad group 'Women's Athletic Shoes'
      Action: Add at least one more responsive search ad to test different headlines and descriptions
 ```
 
-## Deployment
-
-This repository includes Kubernetes manifests for deployment:
-
-- `kubernetes/dev/` - Development environment deployment
-- `kubernetes/test/` - Test environment deployment
-- `kubernetes/prod/` - Production environment deployment
-
-CI/CD pipelines are configured using GitHub Actions for automated testing, building, and deployment.
 
 ## Security
 
