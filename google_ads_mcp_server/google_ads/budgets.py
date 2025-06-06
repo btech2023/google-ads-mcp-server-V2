@@ -167,7 +167,7 @@ class BudgetService:
                     severity=SEVERITY_WARNING,
                     context=context
                 )
-                return create_error_response(error_details, success_key="success") # Use success_key if needed
+                return create_error_response(error_details)
 
         except Exception as e:
             # --- Error Handling ---
@@ -179,7 +179,7 @@ class BudgetService:
                 error_details = handle_exception(e, context=context) # Default severity is ERROR
 
             logger.error(f"Error updating budget {budget_id}: {error_details.message}")
-            return create_error_response(error_details, success_key="success")
+            return create_error_response(error_details)
     
     async def update_budgets_batch(self, customer_id: str, 
                                  budget_updates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -207,7 +207,7 @@ class BudgetService:
                 context=base_context
             )
             logger.error(error.message)
-            return [create_error_response(error, success_key="success")]
+            return [create_error_response(error)]
             
         if not validate_list_not_empty(budget_updates):
              logger.warning("No updates provided for batch budget update.")
@@ -256,7 +256,9 @@ class BudgetService:
                     context=item_context
                 )
                 logger.error(f"Invalid budget update item: {error.message} - {update}")
-                results.append(create_error_response(error, success_key="success", extra_data={"budget_id": budget_id}))
+                error_resp = create_error_response(error)
+                error_resp["budget_id"] = budget_id
+                results.append(error_resp)
         
         # Process valid updates if any exist
         if valid_updates:
@@ -285,7 +287,7 @@ class BudgetService:
                 )
                 logger.error(f"Error in batch budget update API call: {error_details.message}")
                 # Add a general error result for all items attempted in this batch
-                general_error_response = create_error_response(error_details, success_key="success")
+                general_error_response = create_error_response(error_details)
                 # Apply this error to all items that were part of the failed batch
                 failed_batch_results = [
                     {**general_error_response, "budget_id": item["budget_id"]} for item in valid_updates
