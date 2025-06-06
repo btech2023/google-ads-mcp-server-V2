@@ -1,8 +1,9 @@
 """
 Validation Utility Module
 
-This module provides input validation functions for the Google Ads MCP Server to ensure
-data integrity, parameter correctness, and API compliance.
+This module provides input validation functions for the Google Ads MCP
+Server to ensure data integrity, parameter correctness, and API
+compliance.
 """
 
 import logging
@@ -30,6 +31,28 @@ def validate_not_empty_string(value: str, param_name: str = "") -> bool:
         else:
             logger.warning("String value is empty")
         return False
+    return True
+
+
+def validate_non_empty_string(
+    value: Any, param_name: str, errors: List[str]
+) -> bool:
+    """Validate that ``value`` is a non-empty string and collect errors.
+
+    Args:
+        value: The value to validate.
+        param_name: Name of the parameter being validated.
+        errors: List for collecting validation error messages.
+
+    Returns:
+        ``True`` if ``value`` is a non-empty string, otherwise ``False``.
+    """
+    if not isinstance(value, str) or not value.strip():
+        message = f"{param_name} must be a non-empty string"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
     return True
 
 
@@ -98,7 +121,10 @@ def validate_date_range(start_date: str, end_date: str) -> bool:
         True if valid, False otherwise
     """
     # Validate each date format
-    if not validate_date_format(start_date) or not validate_date_format(end_date):
+    if (
+        not validate_date_format(start_date)
+        or not validate_date_format(end_date)
+    ):
         return False
 
     # Check if start_date is before end_date
@@ -107,7 +133,9 @@ def validate_date_range(start_date: str, end_date: str) -> bool:
 
     if start > end:
         logger.warning(
-            f"Invalid date range: start_date {start_date} is after end_date {end_date}"
+            "Invalid date range: start_date %s is after end_date %s",
+            start_date,
+            end_date,
         )
         return False
 
@@ -137,7 +165,9 @@ def validate_enum(
 
     if value not in valid_values:
         logger.warning(
-            f"Invalid value: {value}, expected one of: {', '.join(valid_values)}"
+            "Invalid value: %s, expected one of: %s",
+            value,
+            ", ".join(valid_values),
         )
         return False
 
@@ -215,12 +245,18 @@ def validate_string_length(
         return False
 
     if len(text) < min_length:
-        logger.warning(f"String length {len(text)} is less than minimum {min_length}")
+        logger.warning(
+            "String length %s is less than minimum %s",
+            len(text),
+            min_length,
+        )
         return False
 
     if max_length is not None and len(text) > max_length:
         logger.warning(
-            f"String length {len(text)} is greater than maximum {max_length}"
+            "String length %s is greater than maximum %s",
+            len(text),
+            max_length,
         )
         return False
 
@@ -284,7 +320,9 @@ def validate_any(validations: List[Tuple[Callable, List, Dict]]) -> bool:
 
 
 def sanitize_input(
-    value: str, max_length: Optional[int] = None, allowed_chars: Optional[str] = None
+    value: str,
+    max_length: Optional[int] = None,
+    allowed_chars: Optional[str] = None,
 ) -> str:
     """
     Sanitize input string by applying length limits and character restrictions.
@@ -316,10 +354,12 @@ def validate_budget_id(budget_id: Union[int, str]) -> bool:
     """Validate that a campaign budget ID is a positive integer.
 
     Args:
-        budget_id: The budget ID to validate. Can be an ``int`` or a ``str`` of digits.
+        budget_id: The budget ID to validate. Can be an ``int`` or a ``str`` of
+            digits.
 
     Returns:
-        ``True`` if ``budget_id`` represents a positive integer, otherwise ``False``.
+        ``True`` if ``budget_id`` represents a positive integer, otherwise
+        ``False``.
     """
     if budget_id is None:
         return False
@@ -335,3 +375,126 @@ def validate_budget_id(budget_id: Union[int, str]) -> bool:
 
     logger.warning("Budget ID '%s' is not a string or integer", budget_id)
     return False
+
+
+def validate_list(
+    value: Any,
+    param_name: str,
+    errors: List[str],
+    *,
+    allow_empty: bool = False,
+) -> bool:
+    """Validate that ``value`` is a list.
+
+    Args:
+        value: The value to validate.
+        param_name: Parameter name for error messages.
+        errors: List for collecting validation error messages.
+        allow_empty: Whether an empty list is considered valid.
+
+    Returns:
+        ``True`` if validation passes, otherwise ``False``.
+    """
+    if not isinstance(value, list):
+        message = f"{param_name} must be a list"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
+    if not value and not allow_empty:
+        message = f"{param_name} must not be empty"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
+    return True
+
+
+def validate_dict(
+    value: Any,
+    param_name: str,
+    errors: List[str],
+    *,
+    allow_empty: bool = False,
+) -> bool:
+    """Validate that ``value`` is a dictionary."""
+    if not isinstance(value, dict):
+        message = f"{param_name} must be a dict"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
+    if not value and not allow_empty:
+        message = f"{param_name} must not be empty"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
+    return True
+
+
+def validate_list_not_empty(value: Any) -> bool:
+    """Return ``True`` if ``value`` is a non-empty list."""
+    return isinstance(value, list) and len(value) > 0
+
+
+def validate_list_of_strings(
+    value: Any, *, allow_empty: bool = False
+) -> bool:
+    """Validate that ``value`` is a list of strings."""
+    if not isinstance(value, list):
+        return False
+
+    if not value and not allow_empty:
+        return False
+
+    return all(isinstance(item, str) for item in value)
+
+
+def validate_list_of_dicts(
+    value: Any,
+    *,
+    required_keys: Optional[List[str]] = None,
+    allow_empty: bool = False,
+) -> bool:
+    """Validate that ``value`` is a list of dictionaries."""
+    if not isinstance(value, list):
+        return False
+
+    if not value and not allow_empty:
+        return False
+
+    required_keys = required_keys or []
+    for item in value:
+        if not isinstance(item, dict):
+            return False
+        for key in required_keys:
+            if key not in item:
+                return False
+
+    return True
+
+
+def validate_dict_keys(value: Any, required_keys: List[str]) -> bool:
+    """Validate that a dictionary contains the required keys."""
+    if not isinstance(value, dict):
+        return False
+
+    for key in required_keys:
+        if key not in value:
+            return False
+
+    return True
+
+
+def validate_non_negative_number(
+    value: Any, param_name: str, errors: List[str]
+) -> bool:
+    """Validate that a number is non-negative."""
+    if not isinstance(value, (int, float)) or value < 0:
+        message = f"{param_name} must be a non-negative number"
+        logger.warning(message)
+        errors.append(message)
+        return False
+
+    return True
