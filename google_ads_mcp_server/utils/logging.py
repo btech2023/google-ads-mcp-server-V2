@@ -38,10 +38,23 @@ class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format the log record as a JSON string."""
         log_dict = {}
+
+        # Ensure asctime is available for formatting
+        if "asctime" not in record.__dict__:
+            record.asctime = self.formatTime(record)
+        # Ensure the message attribute exists for formatting
+        if "message" not in record.__dict__:
+            record.message = record.getMessage()
         
         # Apply the format dictionary
         for key, fmt in self.fmt_dict.items():
-            log_dict[key] = fmt % record.__dict__
+            value = fmt % record.__dict__
+            if key == "line":
+                try:
+                    value = int(value)
+                except ValueError:
+                    pass
+            log_dict[key] = value
         
         # Add exception info if present
         if record.exc_info:
@@ -110,6 +123,9 @@ def configure_logging(
     
     # Set the root logger level to the minimum of console and file levels
     logger.setLevel(min(console_level, file_level))
+
+    # Ensure request context information is captured
+    logger.addFilter(RequestContextFilter())
     
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)

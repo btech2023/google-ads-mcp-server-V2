@@ -43,6 +43,18 @@ class TestLoggingUtils(unittest.TestCase):
         root_logger = logging.getLogger()
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
+
+        root_logger.setLevel(logging.INFO)
+
+        # Create a log stream to capture output for assertions
+        self.log_stream = io.StringIO()
+        stream_handler = logging.StreamHandler(self.log_stream)
+        stream_handler.setFormatter(logging.Formatter(":%(request_id)s:%(message)s"))
+        root_logger.addHandler(stream_handler)
+
+        # Configure request context handling and test logger
+        self.logger = logging.getLogger("test_logger")
+        self.logger.addFilter(RequestContextFilter(mock_get_current_request_id))
     
     def test_json_formatter(self):
         """Test JsonFormatter."""
