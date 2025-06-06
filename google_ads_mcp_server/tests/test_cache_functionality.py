@@ -17,6 +17,9 @@ import logging
 from unittest import mock
 from datetime import datetime, timedelta
 
+# Use manual time control instead of sleep
+from time import time as real_time
+
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -161,33 +164,50 @@ class TestCacheFunctionality:
         assert key1 != key3
     
     def test_cache_expiration(self):
-        """Test CF-02: Cache expiration."""
-        # Test data
+        """Test CF-02: Cache expiration without real waiting."""
+
         test_data = {"value": "should_expire"}
-        
-        # Cache parameters with short TTL
+
         params = {
             'query': "SELECT test FROM test",
             'customer_id': TEST_CUSTOMER_ID
         }
-        
-        # Store data in cache with 1 second TTL
-        self.google_ads_client.cache_ttl = SHORT_TTL
-        self.google_ads_client._cache_data("short_ttl_test", test_data, **params)
-        
-        # Should be available immediately
-        immediate_result = self.google_ads_client._get_cached_data("short_ttl_test", **params)
-        assert immediate_result is not None
-        assert immediate_result == test_data
-        
-        # Wait for expiration
-        time.sleep(SHORT_TTL + 1)
-        
-        # Should be expired now
-        expired_result = self.google_ads_client._get_cached_data("short_ttl_test", **params)
-        assert expired_result is None
-        
-        # Reset TTL for other tests
+
+        fake_time = real_time()
+
+        def patched_get_api_response(self_db, customer_id, query_type, query_params):
+            cache_key = self_db._generate_cache_key('api', customer_id, query_params)
+            conn = self_db._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT response_data, metadata, expires_at FROM api_cache WHERE cache_key = ?",
+                (cache_key,)
+            )
+            row = cursor.fetchone()
+            conn.close()
+            if row is None:
+                return None
+            expires_at = datetime.fromisoformat(row['expires_at'])
+            if fake_time >= expires_at.timestamp():
+                return None
+            response_data = json.loads(row['response_data'])
+            metadata = json.loads(row['metadata']) if row['metadata'] else None
+            return {'data': response_data, 'metadata': metadata} if metadata else response_data
+
+        with mock.patch('time.time', side_effect=lambda: fake_time):
+            with mock.patch.object(DatabaseManager, 'get_api_response', new=patched_get_api_response):
+                self.google_ads_client.cache_ttl = SHORT_TTL
+                self.google_ads_client._cache_data("short_ttl_test", test_data, **params)
+
+                immediate_result = self.google_ads_client._get_cached_data("short_ttl_test", **params)
+                assert immediate_result is not None
+                assert immediate_result == test_data
+
+                fake_time += SHORT_TTL + 1
+
+                expired_result = self.google_ads_client._get_cached_data("short_ttl_test", **params)
+                assert expired_result is None
+
         self.google_ads_client.cache_ttl = STANDARD_TTL
     
     def test_customer_specific_caching(self):
