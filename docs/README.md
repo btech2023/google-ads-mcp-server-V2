@@ -2,7 +2,7 @@
 
 ## Project Documentation
 
-- [Project Management Rules](../.cursor/rules/project-managment-rules.mdc) - Core project organization guidelines
+- [Project Management Rules](../.cursor/rules/project-management-rules.mdc) - Core project organization guidelines
 - [Changelog System](./changelog-system.md) - Documentation of the automated changelog system
 
 ## Modularization Process
