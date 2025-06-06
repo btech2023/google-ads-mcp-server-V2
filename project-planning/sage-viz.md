@@ -392,7 +392,7 @@ def get_google_ads_client():
 # Initialize the database manager for accessing cached data
 db_manager = DatabaseManager(db_path=os.environ.get("GOOGLE_ADS_DB_PATH", "cache.db"))
 
-server = Server("google-mcp-server")
+server = Server("google-ads-mcp-server")
 
 @server.list_resources()
 async def handle_list_resources() -> list[types.Resource]:
@@ -983,7 +983,7 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="google-mcp-server",
+                server_name="google-ads-mcp-server",
                 server_version="0.1",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
