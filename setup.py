@@ -4,7 +4,16 @@ setup(
     name="google_ads_mcp_server",
     version="0.1.0",
     packages=find_packages(
-        include=["google_ads_mcp_server", "google_ads_mcp_server.*"]
+        include=[
+            "google_ads_mcp_server",
+            "google_ads_mcp_server.*",
+            "google_ads",
+            "google_ads.*",
+            "utils",
+            "utils.*",
+            "visualization",
+            "visualization.*",
+        ]
     ),
     # Add other dependencies here if needed for the package itself
     # install_requires=[],

@@ -256,6 +256,14 @@ CREATE TABLE IF NOT EXISTS schema_version (
 );
 """
 
+# Schema version constant
+SCHEMA_VERSION = 1
+
+# Queries for schema version management
+GET_SCHEMA_VERSION = "SELECT version FROM schema_version WHERE id = 1;"
+INSERT_SCHEMA_VERSION = "INSERT INTO schema_version (id, version) VALUES (1, ?);"
+UPDATE_SCHEMA_VERSION = "UPDATE schema_version SET version = ? WHERE id = 1;"
+
 # Collect all creation statements
 ALL_TABLES = [
     CREATE_API_CACHE_TABLE,

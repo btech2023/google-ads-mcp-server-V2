@@ -978,3 +978,8 @@ def register_insights_tools(mcp, google_ads_service, insights_service) -> None:
             )
             logger.error(f"Error generating account insights: {str(e)}")
             return create_error_response(error_details)
+
+
+# Backwards compatibility stub
+async def get_performance_insights(*args, **kwargs):
+    raise NotImplementedError("get_performance_insights is not implemented in this version")
