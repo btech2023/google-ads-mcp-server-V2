@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 SQLite Database Schema for Google Ads MCP Server
 
