@@ -498,3 +498,11 @@ def register_keyword_tools(mcp, google_ads_service, keyword_service) -> None:
             )
             logger.error(f"Error removing keywords: {str(e)}")
             return create_error_response(error_details)
+
+
+# Backwards compatibility stubs
+async def get_keywords(*args, **kwargs):
+    raise NotImplementedError("get_keywords is not implemented in this version")
+
+async def create_keywords(*args, **kwargs):
+    raise NotImplementedError("create_keywords is not implemented in this version")

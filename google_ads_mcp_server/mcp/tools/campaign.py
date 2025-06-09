@@ -332,6 +332,15 @@ def register_campaign_tools(mcp, google_ads_service, campaign_service) -> None:
             logger.error(f"Error getting campaign dashboard: {str(e)}")
             return create_error_response(error_details)
 
+
+# Backwards compatibility stubs so imports in legacy tests resolve
+async def get_campaigns(*args, **kwargs):
+    raise NotImplementedError("get_campaigns is not implemented in this version")
+
+async def get_campaign_performance(*args, **kwargs):
+    raise NotImplementedError("get_campaign_performance is not implemented in this version")
+
+
     @mcp.tool()
     async def get_campaign_performance(customer_id: str, campaign_id: str, date_range: int = 30):
         """

@@ -508,3 +508,8 @@ def register_budget_tools(mcp, google_ads_service, budget_service) -> None:
             )
             logger.error(f"Error updating campaign budget: {str(e)}")
             return create_error_response(error_details)
+
+
+# Backwards compatibility stub
+async def get_budgets(*args, **kwargs):
+    raise NotImplementedError("get_budgets is not implemented in this version")

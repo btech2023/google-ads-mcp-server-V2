@@ -558,3 +558,8 @@ def register_ad_group_tools(mcp, google_ads_service, ad_group_service) -> None:
             )
             logger.error(f"Error updating ad group: {str(e)}")
             return create_error_response(error_details)
+
+
+# Backwards compatibility stubs
+async def get_ad_groups(*args, **kwargs):
+    raise NotImplementedError("get_ad_groups is not implemented in this version")

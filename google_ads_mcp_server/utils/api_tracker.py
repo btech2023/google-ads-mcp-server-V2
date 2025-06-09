@@ -582,4 +582,7 @@ def track_api_call(tracker: APICallTracker):
                 
         return wrapped
     
-    return decorator 
+    return decorator
+
+# Backwards compatibility alias
+ApiCallTracker = APICallTracker
