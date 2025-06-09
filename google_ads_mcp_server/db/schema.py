@@ -256,7 +256,19 @@ ALL_TABLES = [
     CREATE_USER_ACCOUNT_ACCESS_TABLE,
     CREATE_SYSTEM_CONFIG_TABLE,
     CREATE_USER_CONFIG_TABLE,
-    CREATE_SCHEMA_VERSION_TABLE
+    CREATE_SCHEMA_VERSION_TABLE,
+]
+
+# Convenience lists for user and configuration table creation
+CREATE_USER_TABLES_SQL = [
+    CREATE_USERS_TABLE,
+    CREATE_USER_TOKENS_TABLE,
+    CREATE_USER_ACCOUNT_ACCESS_TABLE,
+]
+
+CREATE_CONFIG_TABLES_SQL = [
+    CREATE_SYSTEM_CONFIG_TABLE,
+    CREATE_USER_CONFIG_TABLE,
 ]
 
 ALL_INDEXES = [
@@ -301,10 +313,10 @@ SELECT
 
 # Dictionary mapping entity types to their cache tables
 CACHE_TABLES = {
-    'api': 'api_response_cache',
-    'account_kpi': 'account_kpi_cache',
-    'campaign': 'campaign_cache',
-    'keyword': 'keyword_cache',
-    'search_term': 'search_term_cache',
-    'budget': 'budget_cache',
-} 
+    "api": "api_response_cache",
+    "account_kpi": "account_kpi_cache",
+    "campaign": "campaign_cache",
+    "keyword": "keyword_cache",
+    "search_term": "search_term_cache",
+    "budget": "budget_cache",
+}
