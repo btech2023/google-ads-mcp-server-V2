@@ -29,7 +29,13 @@ from .keyword import (
 )
 from .search_term import register_search_term_tools
 from .budget import register_budget_tools
-from .dashboard import register_dashboard_tools
+from .dashboard import (
+    register_dashboard_tools,
+    get_account_dashboard_json,
+    get_campaign_dashboard_json,
+    get_campaigns_comparison_json,
+    get_performance_breakdown_json,
+)
 from .insights import register_insights_tools
 
 __all__ = [
@@ -47,6 +53,10 @@ __all__ = [
     "get_search_terms_report_json",
     "analyze_search_terms",
     "analyze_search_terms_json",
+    "get_account_dashboard_json",
+    "get_campaign_dashboard_json",
+    "get_campaigns_comparison_json",
+    "get_performance_breakdown_json",
 ]
 
 
