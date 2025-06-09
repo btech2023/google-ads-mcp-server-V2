@@ -235,6 +235,18 @@ CREATE_USER_CONFIG_USER_INDEX = """
 CREATE INDEX IF NOT EXISTS idx_user_config_user_id ON user_config(user_id);
 """
 
+# Grouped creation statements for convenience
+CREATE_USER_TABLES_SQL = [
+    CREATE_USERS_TABLE,
+    CREATE_USER_TOKENS_TABLE,
+    CREATE_USER_ACCOUNT_ACCESS_TABLE,
+]
+
+CREATE_CONFIG_TABLES_SQL = [
+    CREATE_SYSTEM_CONFIG_TABLE,
+    CREATE_USER_CONFIG_TABLE,
+]
+
 # Schema versioning table
 CREATE_SCHEMA_VERSION_TABLE = """
 CREATE TABLE IF NOT EXISTS schema_version (
