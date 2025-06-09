@@ -56,6 +56,70 @@ def validate_non_empty_string(
     return True
 
 
+def validate_not_none(value: Any, param_name: str = "") -> bool:
+    """Return ``True`` if ``value`` is not ``None``."""
+    if value is None:
+        if param_name:
+            logger.warning("%s is None", param_name)
+        else:
+            logger.warning("Value is None")
+        return False
+    return True
+
+
+def _validate_id(value: Union[int, str], name: str) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, int):
+        return value > 0
+    if isinstance(value, str):
+        if not value.isdigit():
+            logger.warning("%s '%s' is not numeric", name, value)
+            return False
+        return int(value) > 0
+    logger.warning("%s '%s' is not a string or integer", name, value)
+    return False
+
+
+def validate_campaign_id(campaign_id: Union[int, str]) -> bool:
+    """Validate that a campaign ID represents a positive integer."""
+    return _validate_id(campaign_id, "campaign_id")
+
+
+def validate_ad_group_id(ad_group_id: Union[int, str]) -> bool:
+    """Validate that an ad group ID represents a positive integer."""
+    return _validate_id(ad_group_id, "ad_group_id")
+
+
+def validate_keyword_id(keyword_id: Union[int, str]) -> bool:
+    """Validate that a keyword ID represents a positive integer."""
+    return _validate_id(keyword_id, "keyword_id")
+
+
+def validate_date_range_string(date_range: str) -> bool:
+    """Validate that a date range string is one of the supported constants."""
+    if not isinstance(date_range, str):
+        return False
+    valid_ranges = {
+        "LAST_7_DAYS",
+        "LAST_14_DAYS",
+        "LAST_30_DAYS",
+        "LAST_90_DAYS",
+        "THIS_MONTH",
+        "LAST_MONTH",
+        "PREVIOUS_7_DAYS",
+        "PREVIOUS_14_DAYS",
+        "PREVIOUS_30_DAYS",
+        "PREVIOUS_90_DAYS",
+        "PREVIOUS_MONTH",
+        "PREVIOUS_YEAR",
+    }
+    if date_range not in valid_ranges:
+        logger.warning("Invalid date range: %s", date_range)
+        return False
+    return True
+
+
 def validate_customer_id(customer_id: str) -> bool:
     """
     Validate that a customer ID is in the correct format.
