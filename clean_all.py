@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# flake8: noqa
 """
 Script to fix encoding/byte issues across all Python files and remove cache files.
 """

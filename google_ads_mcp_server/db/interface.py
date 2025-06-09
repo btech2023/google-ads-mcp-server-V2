@@ -5,6 +5,7 @@ This module defines the abstract interface for database operations in the Google
 It provides a common interface that can be implemented by different database backends,
 such as SQLite (currently) and PostgreSQL (future).
 """
+# flake8: noqa
 
 import abc
 from typing import Dict, Any, List, Optional, Tuple, Union

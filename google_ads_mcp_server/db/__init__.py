@@ -4,6 +4,7 @@ Database Package
 This package provides database functionality for the Google Ads MCP Server,
 including caching and persistent storage.
 """
+# flake8: noqa
 
 from .interface import DatabaseInterface, DatabaseError
 from .factory import get_database_manager

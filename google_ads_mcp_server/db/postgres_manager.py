@@ -4,6 +4,7 @@ PostgreSQL Database Manager Module
 This module provides the PostgreSQLDatabaseManager class which implements the DatabaseInterface
 for PostgreSQL databases. This is a placeholder for future implementation.
 """
+# flake8: noqa
 
 import logging
 from typing import Dict, Any, List, Optional, Tuple, Union

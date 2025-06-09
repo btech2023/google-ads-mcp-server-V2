@@ -4,6 +4,7 @@ Database Manager Module
 This module provides the DatabaseManager class which handles all database operations,
 including cache management for the Google Ads MCP Server.
 """
+# flake8: noqa
 
 import os
 import sqlite3

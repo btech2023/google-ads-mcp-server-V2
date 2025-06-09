@@ -262,6 +262,17 @@ class PerformanceProfiler:
         
         return analysis
 
+
+def log_performance_summary(summary: Dict[str, Any]) -> None:
+    """Log a concise performance summary used by tests."""
+    for name, metrics in summary.items():
+        logger.info(
+            "%s: avg %.4f sec over %d runs",
+            name,
+            metrics.get("avg_execution_time", 0),
+            metrics.get("run_count", 0),
+        )
+
 # Example usage in a script:
 """
 async def main():
