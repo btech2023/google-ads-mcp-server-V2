@@ -24,20 +24,248 @@ from google_ads_mcp_server.utils.error_handler import (
 from google_ads_mcp_server.utils.formatting import format_customer_id, clean_customer_id
 
 from visualization.formatters import format_for_visualization
-from visualization.dashboards import create_account_dashboard_visualization, create_campaign_dashboard_visualization
+from visualization.dashboards import (
+    create_account_dashboard_visualization,
+    create_campaign_dashboard_visualization,
+)
+
+# Service instance used by the tool functions. It is set when
+# `register_dashboard_tools` is invoked and can be patched in tests.
+dashboard_service = None
 
 # Replace standard logger with utils-provided logger
 logger = get_logger(__name__)
 
-def register_dashboard_tools(mcp, google_ads_service, dashboard_service) -> None:
-    """
-    Register dashboard-related MCP tools.
 
-    Args:
-        mcp: The MCP server instance
-        google_ads_service: The Google Ads service instance
-        dashboard_service: The dashboard service instance
-    """
+def get_account_dashboard_json(
+    customer_id: str,
+    date_range: str = "LAST_30_DAYS",
+    comparison_range: str = "PREVIOUS_30_DAYS",
+):
+    """Return account dashboard data as JSON."""
+    try:
+        if not validate_customer_id(customer_id):
+            return create_error_response(
+                handle_exception(
+                    ValueError(f"Invalid customer_id format: {customer_id}"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        clean_cid = clean_customer_id(customer_id)
+        data = dashboard_service.get_account_dashboard(
+            customer_id=clean_cid,
+            date_range=date_range,
+            comparison_range=comparison_range,
+        )
+        if not data or "error" in data:
+            msg = data.get("error", "Failed to retrieve account dashboard data")
+            return create_error_response(
+                handle_exception(
+                    ValueError(msg),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        visualization = create_account_dashboard_visualization(account_data=data)
+        return {
+            "type": "success",
+            "data": {
+                "customer_id": format_customer_id(clean_cid),
+                "date_range": date_range,
+                "comparison_range": comparison_range,
+                "account_name": data.get("account_name", "My Account"),
+                "metrics": data.get("metrics", {}),
+                "time_series": data.get("time_series", []),
+                "campaigns": data.get("campaigns", []),
+                "ad_groups": data.get("ad_groups", []),
+            },
+            "visualization": visualization,
+        }
+    except Exception as e:
+        return create_error_response(handle_exception(e))
+
+
+def get_campaign_dashboard_json(
+    customer_id: str,
+    campaign_id: str,
+    date_range: str = "LAST_30_DAYS",
+    comparison_range: str = "PREVIOUS_30_DAYS",
+):
+    """Return campaign dashboard data as JSON."""
+    try:
+        if not validate_customer_id(customer_id) or not validate_string_length(campaign_id, min_length=1):
+            return create_error_response(
+                handle_exception(
+                    ValueError("Invalid customer_id or campaign_id"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        clean_cid = clean_customer_id(customer_id)
+        data = dashboard_service.get_campaign_dashboard(
+            customer_id=clean_cid,
+            campaign_id=campaign_id,
+            date_range=date_range,
+            comparison_range=comparison_range,
+        )
+        if not data or "error" in data:
+            msg = data.get("error", "Failed to retrieve campaign dashboard data")
+            return create_error_response(
+                handle_exception(
+                    ValueError(msg),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        visualization = create_campaign_dashboard_visualization(campaign_data=data)
+        return {
+            "type": "success",
+            "data": {
+                "customer_id": format_customer_id(clean_cid),
+                "campaign_id": campaign_id,
+                "campaign_name": data.get("name", "Unknown Campaign"),
+                "date_range": date_range,
+                "comparison_range": comparison_range,
+                "metrics": data.get("metrics", {}),
+                "time_series": data.get("time_series", []),
+                "ad_groups": data.get("ad_groups", []),
+                "device_performance": data.get("device_performance", []),
+                "keywords": data.get("keywords", []),
+            },
+            "visualization": visualization,
+        }
+    except Exception as e:
+        return create_error_response(handle_exception(e))
+
+
+def get_campaigns_comparison_json(
+    customer_id: str,
+    campaign_ids: str,
+    date_range: str = "LAST_30_DAYS",
+    metrics: str | None = None,
+):
+    """Return comparison data for multiple campaigns."""
+    try:
+        if not validate_customer_id(customer_id) or not validate_string_length(campaign_ids, min_length=1):
+            return create_error_response(
+                handle_exception(
+                    ValueError("Invalid customer_id or campaign_ids"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        metric_list = [m.strip() for m in metrics.split(",")] if metrics else None
+        clean_cid = clean_customer_id(customer_id)
+        data = dashboard_service.get_campaigns_comparison(
+            customer_id=clean_cid,
+            campaign_ids=[cid.strip() for cid in campaign_ids.split(",") if cid.strip()],
+            date_range=date_range,
+            metrics=metric_list,
+        )
+        if not data or "error" in data:
+            msg = data.get("error", "Failed to retrieve campaigns comparison data")
+            return create_error_response(
+                handle_exception(
+                    ValueError(msg),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+        visualization = format_for_visualization(data)
+        return {
+            "type": "success",
+            "data": {
+                "customer_id": format_customer_id(clean_cid),
+                "date_range": date_range,
+                "campaigns": data.get("campaigns", []),
+                "metrics": data.get("metrics", []),
+            },
+            "visualization": visualization,
+        }
+    except Exception as e:
+        return create_error_response(handle_exception(e))
+
+
+def get_performance_breakdown_json(
+    customer_id: str,
+    entity_type: str,
+    entity_id: str | None = None,
+    dimensions: str = "device",
+    date_range: str = "LAST_30_DAYS",
+):
+    """Return performance breakdown data."""
+    try:
+        if not validate_customer_id(customer_id):
+            return create_error_response(
+                handle_exception(
+                    ValueError("Invalid customer_id format"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        valid_entity_types = ["account", "campaign", "ad_group"]
+        if not validate_enum(entity_type, valid_entity_types):
+            return create_error_response(
+                handle_exception(
+                    ValueError("Invalid entity_type"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        if entity_type in ("campaign", "ad_group") and not entity_id:
+            return create_error_response(
+                handle_exception(
+                    ValueError("entity_id is required for campaign or ad_group"),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+
+        dimension_list = [d.strip() for d in dimensions.split(",") if d.strip()]
+
+        clean_cid = clean_customer_id(customer_id)
+        data = dashboard_service.get_performance_breakdown(
+            customer_id=clean_cid,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            dimensions=dimension_list,
+            date_range=date_range,
+        )
+        if not data or "error" in data:
+            msg = data.get("error", "Failed to retrieve performance breakdown data")
+            return create_error_response(
+                handle_exception(
+                    ValueError(msg),
+                    category=CATEGORY_VALIDATION,
+                )
+            )
+        visualization = format_for_visualization(data)
+        return {
+            "type": "success",
+            "data": {
+                "customer_id": format_customer_id(clean_cid),
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "entity_name": data.get("entity_name", ""),
+                "date_range": date_range,
+                "dimensions": dimension_list,
+                "breakdown_data": data.get("data", []),
+            },
+            "visualization": visualization,
+        }
+    except Exception as e:
+        return create_error_response(handle_exception(e))
+
+def register_dashboard_tools(mcp, google_ads_service, dashboard_service_instance) -> None:
+    """Register dashboard-related MCP tools."""
+
+    global dashboard_service
+    dashboard_service = dashboard_service_instance
+
+    # Expose the top-level functions as MCP tools
+    mcp.tool()(get_account_dashboard_json)
+    mcp.tool()(get_campaign_dashboard_json)
+    mcp.tool()(get_campaigns_comparison_json)
+    mcp.tool()(get_performance_breakdown_json)
     # Related: mcp.tools.campaign.get_campaigns (Account dashboard includes campaign data)
     # Related: mcp.tools.ad_group.get_ad_groups (Account dashboard includes ad group data)
     # Related: mcp.tools.keyword.get_keywords (Account dashboard may include keyword data)
