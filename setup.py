@@ -15,8 +15,10 @@ setup(
             "visualization.*",
         ]
     ),
-    # Add other dependencies here if needed for the package itself
-    # install_requires=[],
+    # Core runtime dependencies
+    install_requires=[
+        "google-ads>=21.3.0",
+    ],
     # Tests require additional packages, but they aren't needed for the package itself
     extras_require={
         "test": ["pytest", "unittest.mock"],
