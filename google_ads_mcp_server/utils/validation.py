@@ -268,6 +268,26 @@ def validate_numeric_range(
     return True
 
 
+def validate_float_range(
+    value: Any,
+    min_value: float,
+    max_value: float,
+) -> bool:
+    """Validate that a float is within a given range."""
+    if value is None or not isinstance(value, (int, float)):
+        return False
+
+    value = float(value)
+
+    if value < min_value or value > max_value:
+        logger.warning(
+            "Value %s out of range %.2f - %.2f", value, min_value, max_value
+        )
+        return False
+
+    return True
+
+
 def validate_positive_integer(value: Any) -> bool:
     """Validate that ``value`` is a positive integer.
 
