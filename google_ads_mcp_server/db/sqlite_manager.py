@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 SQLite Database Manager Module
 
