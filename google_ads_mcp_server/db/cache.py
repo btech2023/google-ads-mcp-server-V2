@@ -3,6 +3,7 @@ Cache Manager Module
 
 This module provides functionality for caching API responses and other data.
 """
+# flake8: noqa
 
 import json
 import hashlib

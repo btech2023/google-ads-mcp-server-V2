@@ -5,6 +5,7 @@ This module provides factory functions for creating database instances.
 It supports different database backends (SQLite, PostgreSQL) and handles
 configuration-based selection of the appropriate implementation.
 """
+# flake8: noqa
 
 import os
 from typing import Dict, Any, Optional

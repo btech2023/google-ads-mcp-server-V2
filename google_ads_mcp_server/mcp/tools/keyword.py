@@ -506,3 +506,27 @@ async def get_keywords(*args, **kwargs):
 
 async def create_keywords(*args, **kwargs):
     raise NotImplementedError("create_keywords is not implemented in this version")
+
+async def get_keywords_json(*args, **kwargs):
+    raise NotImplementedError("get_keywords_json is not implemented in this version")
+
+async def add_keywords(*args, **kwargs):
+    raise NotImplementedError("add_keywords is not implemented in this version")
+
+async def update_keyword(*args, **kwargs):
+    raise NotImplementedError("update_keyword is not implemented in this version")
+
+async def remove_keywords(*args, **kwargs):
+    raise NotImplementedError("remove_keywords is not implemented in this version")
+
+async def get_search_terms_report(*args, **kwargs):
+    raise NotImplementedError("get_search_terms_report is not implemented in this version")
+
+async def get_search_terms_report_json(*args, **kwargs):
+    raise NotImplementedError("get_search_terms_report_json is not implemented in this version")
+
+async def analyze_search_terms(*args, **kwargs):
+    raise NotImplementedError("analyze_search_terms is not implemented in this version")
+
+async def analyze_search_terms_json(*args, **kwargs):
+    raise NotImplementedError("analyze_search_terms_json is not implemented in this version")

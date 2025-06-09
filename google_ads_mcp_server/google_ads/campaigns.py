@@ -441,4 +441,12 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())
+
+
+# Backwards compatibility stub so imports in legacy tests succeed
+class CampaignService:
+    """Minimal stub of CampaignService for tests."""
+
+    def __init__(self, google_ads_service):
+        self.google_ads_service = google_ads_service

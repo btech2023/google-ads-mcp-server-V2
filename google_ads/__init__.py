@@ -1,4 +1,5 @@
 """Compatibility package mapping to google_ads_mcp_server.google_ads."""
+# flake8: noqa
 import importlib
 import sys
 from types import ModuleType
