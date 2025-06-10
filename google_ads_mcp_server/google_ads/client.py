@@ -17,7 +17,12 @@ from ..db.interface import DatabaseInterface
 # Import utilities
 from ..utils.logging import get_logger
 from ..utils.validation import validate_positive_integer, validate_enum
-from ..utils.error_handler import handle_exception, CATEGORY_CONFIG, SEVERITY_ERROR
+from ..utils.error_handler import (
+    handle_exception,
+    CATEGORY_CONFIG,
+    SEVERITY_ERROR,
+    SEVERITY_WARNING,
+)
 
 logger = get_logger(__name__)
 
