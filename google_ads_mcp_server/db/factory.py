@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 
 # Import implementations when available
 try:
-    from .sqlite_manager import SQLiteDatabaseManager
+    from .manager import SQLiteDatabaseManager
     SQLITE_AVAILABLE = True
 except ImportError:
     SQLITE_AVAILABLE = False
@@ -50,7 +50,7 @@ def get_database_manager(
 ) -> DatabaseInterface:
     """
     Get a database manager instance based on the specified type and configuration.
-    
+
     Args:
         db_type: The type of database to use ('sqlite' or 'postgres')
         db_config: Configuration parameters for the database
@@ -66,10 +66,10 @@ def get_database_manager(
                 - ssl_mode: SSL mode for connection
                 - pool_min_size: Minimum connection pool size
                 - pool_max_size: Maximum connection pool size
-    
+
     Returns:
         A database manager instance implementing the DatabaseInterface
-    
+
     Raises:
         ValueError: If the specified database type is not supported
         ImportError: If the required database implementation is not available
@@ -78,57 +78,58 @@ def get_database_manager(
         # Validate inputs
         validation_errors = []
         validate_non_empty_string(db_type, "db_type", validation_errors)
-        validate_enum(db_type, "db_type", ["sqlite", "postgres"], validation_errors)
-        
+        if not validate_enum(db_type, ["sqlite", "postgres"]):
+            validation_errors.append("db_type must be one of: sqlite, postgres")
+
         if validation_errors:
             error_message = f"Validation errors in get_database_manager: {'; '.join(validation_errors)}"
             logger.error(error_message)
             raise ValueError(error_message)
-            
+
         if db_config is None:
             db_config = {}
-        
+
         # Apply default values
         if db_type == "sqlite":
             if not SQLITE_AVAILABLE:
                 error_message = "SQLite database manager is not available"
                 logger.error(error_message)
                 raise ImportError(error_message)
-            
+
             # Default SQLite configuration
             if 'db_path' not in db_config:
                 # Default to a database file in the same directory as this module
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 db_config['db_path'] = os.path.join(base_dir, 'google_ads_mcp.db')
-            
+
             if 'auto_clean_interval' not in db_config:
                 db_config['auto_clean_interval'] = 3600  # 1 hour
-            
+
             logger.info(f"Creating SQLite database manager with path: {db_config['db_path']}")
             return SQLiteDatabaseManager(**db_config)
-        
+
         elif db_type == "postgres":
             if not POSTGRES_AVAILABLE:
                 error_message = "PostgreSQL database manager is not available. Please install required packages."
                 logger.error(error_message)
                 raise ImportError(error_message)
-            
+
             # Default PostgreSQL configuration
             if 'host' not in db_config:
                 db_config['host'] = 'localhost'
-            
+
             if 'port' not in db_config:
                 db_config['port'] = 5432
-            
+
             # Required parameters for PostgreSQL
             required_params = ['database', 'user', 'password']
             missing_params = [param for param in required_params if param not in db_config]
-            
+
             if missing_params:
                 error_message = f"Missing required PostgreSQL configuration parameters: {', '.join(missing_params)}"
                 logger.error(error_message)
                 raise ValueError(error_message)
-            
+
             logger.info(f"Creating PostgreSQL database manager for database: {db_config['database']} on host: {db_config['host']}")
             return PostgreSQLDatabaseManager(**db_config)
     except Exception as e:
@@ -140,4 +141,4 @@ def get_database_manager(
             category=CATEGORY_DATABASE
         )
         logger.error(f"Failed to create database manager: {error_details.message}")
-        raise ValueError(f"Database manager creation failed: {str(e)}") from e 
+        raise ValueError(f"Database manager creation failed: {str(e)}") from e
