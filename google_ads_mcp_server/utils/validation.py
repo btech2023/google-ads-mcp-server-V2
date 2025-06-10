@@ -41,18 +41,15 @@ def validate_non_empty_string(
 
     Args:
         value: The value to validate.
-        param_name: Name of the parameter being validated.
-        errors: List for collecting validation error messages.
+        param_name: Name of the parameter for error messages.
+        errors: List where error messages will be appended.
 
     Returns:
-        ``True`` if ``value`` is a non-empty string, otherwise ``False``.
+        ``True`` if ``value`` is a non-empty string.
     """
-    if not isinstance(value, str) or not value.strip():
-        message = f"{param_name} must be a non-empty string"
-        logger.warning(message)
-        errors.append(message)
+    if not validate_not_empty_string(value, param_name):
+        errors.append(f"{param_name} must be a non-empty string")
         return False
-
     return True
 
 
@@ -308,6 +305,97 @@ def validate_positive_integer(value: Any) -> bool:
         logger.warning("Value %s is not positive", value)
         return False
 
+    return True
+
+
+def validate_list(
+    value: Any, param_name: str, errors: List[str], allow_empty: bool = False
+) -> bool:
+    """Validate that ``value`` is a list.
+
+    Args:
+        value: Value to validate.
+        param_name: Name for error reporting.
+        errors: Collection of validation error messages.
+        allow_empty: Whether an empty list is considered valid.
+
+    Returns:
+        ``True`` if ``value`` is a list and passes emptiness check.
+    """
+    if not isinstance(value, list):
+        errors.append(f"{param_name} must be a list")
+        return False
+    if not allow_empty and len(value) == 0:
+        errors.append(f"{param_name} cannot be empty")
+        return False
+    return True
+
+
+def validate_dict(
+    value: Any, param_name: str, errors: List[str], allow_empty: bool = False
+) -> bool:
+    """Validate that ``value`` is a dictionary."""
+    if not isinstance(value, dict):
+        errors.append(f"{param_name} must be a dict")
+        return False
+    if not allow_empty and len(value) == 0:
+        errors.append(f"{param_name} cannot be empty")
+        return False
+    return True
+
+
+def validate_list_not_empty(value: Any) -> bool:
+    """Return ``True`` if ``value`` is a non-empty list."""
+    return isinstance(value, list) and len(value) > 0
+
+
+def validate_list_of_strings(value: Any, allow_empty: bool = False) -> bool:
+    """Validate that ``value`` is a list of strings."""
+    if not isinstance(value, list):
+        return False
+    if not value and not allow_empty:
+        return False
+    return all(isinstance(item, str) for item in value)
+
+
+def validate_list_of_dicts(
+    value: Any,
+    allow_empty: bool = False,
+    required_keys: Optional[List[str]] = None,
+) -> bool:
+    """Validate that ``value`` is a list of dictionaries."""
+    if not isinstance(value, list):
+        return False
+    if not value and not allow_empty:
+        return False
+    for item in value:
+        if not isinstance(item, dict):
+            return False
+        if required_keys:
+            for key in required_keys:
+                if key not in item:
+                    return False
+    return True
+
+
+def validate_dict_keys(value: Any, required_keys: List[str]) -> bool:
+    """Validate that a dictionary contains ``required_keys``."""
+    if not isinstance(value, dict):
+        return False
+    for key in required_keys:
+        if key not in value:
+            return False
+    return True
+
+
+def validate_non_negative_number(value: Any, param_name: str, errors: List[str]) -> bool:
+    """Validate that ``value`` is a number greater than or equal to zero."""
+    if value is None or not isinstance(value, (int, float)):
+        errors.append(f"{param_name} must be a non-negative number")
+        return False
+    if value < 0:
+        errors.append(f"{param_name} must be non-negative")
+        return False
     return True
 
 
