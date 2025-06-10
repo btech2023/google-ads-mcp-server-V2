@@ -6,13 +6,17 @@ from google_ads_mcp_server.db.factory import get_database_manager
 
 security = HTTPBearer()
 
-db_manager = get_database_manager()
+db_manager = None
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """FastAPI dependency to authenticate a request using a bearer token."""
+    global db_manager
+    if db_manager is None:
+        db_manager = get_database_manager()
+
     token = credentials.credentials
     token_hash = hash_token(token)
 
