@@ -12,6 +12,14 @@ import logging
 from enum import Enum
 from typing import Dict, Any, Optional
 
+from dotenv import load_dotenv, find_dotenv
+
+# Load environment variables early so APP_ENV is available when the
+# configuration instance is created. find_dotenv searches parent
+# directories to locate the .env file regardless of the current
+# working directory.
+load_dotenv(find_dotenv())
+
 logger = logging.getLogger("config-manager")
 
 class Environment(Enum):
