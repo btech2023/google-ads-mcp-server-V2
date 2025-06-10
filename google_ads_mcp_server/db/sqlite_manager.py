@@ -15,6 +15,7 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
+import aiosqlite
 
 from .interface import DatabaseError, DatabaseInterface
 from .schema import (
@@ -1055,3 +1056,154 @@ class SQLiteDatabaseManager(DatabaseInterface):
             return None
         finally:
             conn.close()
+
+    # --- User/Token Methods ---
+
+    async def get_token_data_by_hash(self, token_hash: str) -> Optional[Dict]:
+        """Retrieve token data and associated user_id based on the token's hash."""
+        sql = """
+        SELECT token_id, user_id, description, created_at, expires_at, last_used, status
+        FROM user_tokens
+        WHERE token_hash = ?
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(sql, (token_hash,)) as cursor:
+                    row = await cursor.fetchone()
+            if row:
+                logger.debug(f"Found token data for hash: {token_hash[:4]}...{token_hash[-4:]}")
+                return dict(row)
+            logger.debug(
+                f"No token found for hash: {token_hash[:4]}...{token_hash[-4:]}"
+            )
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving token data by hash: {e}")
+            return None
+
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        """Retrieve user details based on user_id."""
+        sql = """
+        SELECT user_id, username, email, created_at, last_active, status
+        FROM users
+        WHERE user_id = ?
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(sql, (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+            if row:
+                logger.debug(f"Found user data for user_id: {user_id}")
+                return dict(row)
+            logger.debug(f"No user found for user_id: {user_id}")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving user data by id {user_id}: {e}")
+            return None
+
+    async def create_user(
+        self, username: str, email: Optional[str] = None, status: str = "active"
+    ) -> int:
+        """Create a new user and return their user_id."""
+        sql = """
+        INSERT INTO users (username, email, status, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (username, email, status))
+                await db.commit()
+                user_id = cursor.lastrowid
+                logger.info(f"Created user '{username}' with user_id: {user_id}")
+                return user_id
+        except aiosqlite.IntegrityError as e:
+            logger.error(
+                f"Failed to create user '{username}'. Username or email might already exist. Error: {e}"
+            )
+            return -1
+        except Exception as e:
+            logger.error(f"Error creating user '{username}': {e}")
+            return -1
+
+    async def add_user_token(
+        self,
+        user_id: int,
+        token_hash: str,
+        description: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+        status: str = "active",
+    ) -> int:
+        """Add a new token (hashed) for a user and return the token_id."""
+        sql = """
+        INSERT INTO user_tokens (user_id, token_hash, description, expires_at, status, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        """
+        expires_at_str = expires_at.isoformat() if expires_at else None
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(
+                    sql, (user_id, token_hash, description, expires_at_str, status)
+                )
+                await db.commit()
+                token_id = cursor.lastrowid
+                logger.info(f"Added token (ID: {token_id}) for user_id: {user_id}")
+                return token_id
+        except aiosqlite.IntegrityError as e:
+            logger.error(
+                f"Failed to add token for user {user_id}. Hash might already exist. Error: {e}"
+            )
+            return -1
+        except Exception as e:
+            logger.error(f"Error adding token for user {user_id}: {e}")
+            return -1
+
+    async def update_token_last_used(self, token_id: int):
+        """Update the last_used timestamp for a specific token."""
+        sql = "UPDATE user_tokens SET last_used = datetime('now') WHERE token_id = ?"
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(sql, (token_id,))
+                await db.commit()
+            logger.debug(f"Updated last_used for token_id: {token_id}")
+        except Exception as e:
+            logger.error(f"Error updating last_used for token {token_id}: {e}")
+
+    async def delete_token(self, token_id: int):
+        """Revoke a specific token by setting its status to 'revoked'."""
+        sql = (
+            "UPDATE user_tokens SET status = 'revoked', expires_at = datetime('now') "
+            "WHERE token_id = ? AND status = 'active'"
+        )
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(sql, (token_id,))
+                await db.commit()
+                if cursor.rowcount > 0:
+                    logger.info(f"Revoked token_id: {token_id}")
+                else:
+                    logger.warning(
+                        f"Attempted to revoke token_id: {token_id}, but it was not found or already revoked."
+                    )
+        except Exception as e:
+            logger.error(f"Error revoking token {token_id}: {e}")
+
+    async def add_account_access(
+        self,
+        user_id: int,
+        customer_id: str,
+        access_level: str = "read",
+        granted_by: Optional[int] = None,
+    ):
+        logger.warning("add_account_access not implemented")
+
+    async def get_user_accessible_accounts(self, user_id: int) -> List[Dict]:
+        logger.warning("get_user_accessible_accounts not implemented")
+        return []
+
+    async def check_account_access(
+        self, user_id: int, customer_id: str, required_level: str = "read"
+    ) -> bool:
+        logger.warning("check_account_access not implemented")
+        return False
