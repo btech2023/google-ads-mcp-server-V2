@@ -26,7 +26,6 @@ from google_ads_mcp_server.google_ads.client import GoogleAdsService
 from google_ads_mcp_server.google_ads.client_base import GoogleAdsClientError
 from google_ads_mcp_server.health import health_check
 from google_ads_mcp_server.db.manager import SQLiteDatabaseManager
-from google_ads_mcp_server.auth.dependencies import get_current_user
 
 # Import utility modules
 from google_ads_mcp_server.utils.token_utils import hash_token, verify_token
